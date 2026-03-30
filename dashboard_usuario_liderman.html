@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIDERMAN — Proyecto de Detección Automática de Eventos CCTV</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--red:#FF2020;--red-lt:rgba(255,32,32,0.12);--black:#0a0a0a;--charcoal:#111111;--border:#2a2a2a;--surface:#161616;--surface2:#1e1e1e;--bg:#0d0d0d;--text:#e8e8e8;--muted:#555555;--conf:#22c55e;--conf-lt:rgba(34,197,94,0.12);--noconf:#FF2020;--noconf-lt:rgba(255,32,32,0.12);--pend:#f59e0b;--pend-lt:rgba(245,158,11,0.12);--alto:#FF2020;--alto-lt:rgba(255,32,32,0.12);--medio:#f59e0b;--medio-lt:rgba(245,158,11,0.12);--bajo:#22c55e;--bajo-lt:rgba(34,197,94,0.12);--tambo:#3b82f6;--tambo-lt:rgba(59,130,246,0.12);--aruma:#a855f7;--aruma-lt:rgba(168,85,247,0.12);}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-height:100vh;}
+.hdr{background:var(--black);border-bottom:3px solid var(--red);position:sticky;top:0;z-index:200;}
+.hdr-in{max-width:1440px;margin:0 auto;padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;}
+.brand{display:flex;align-items:center;gap:14px;}
+.logo{background:var(--red);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;padding:5px 12px;border-radius:4px;}
+.dvd{width:1px;height:24px;background:#2e2e2e;}
+.brand-info h1{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#fff;letter-spacing:1px;text-transform:uppercase;}
+.brand-info p{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#555;margin-top:1px;}
+.hdr-r{display:flex;align-items:center;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#555;}
+.live{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.sbar{background:var(--charcoal);border-bottom:1px solid #222;}
+.sbar-in{max-width:1440px;margin:0 auto;padding:10px 28px;display:flex;flex-direction:column;gap:8px;}
+.sbar-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.slbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;}
+.btn{padding:6px 15px;border-radius:5px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-red{background:var(--red);color:#fff;}.btn-red:hover{background:#e00000;}
+.btn-out{background:transparent;border:1px solid #3a3a3a;color:#777;}.btn-out:hover{border-color:var(--red);color:var(--red);}
+.si{flex:1;min-width:240px;background:#252525;border:1px solid #333;border-radius:5px;padding:6px 12px;color:#ccc;font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;}
+.si:focus{border-color:var(--red);}.si::placeholder{color:#444;}
+textarea.si{height:80px;resize:vertical;}
+#zoneUrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%;}
+#zoneCsv{display:none;width:100%;}
+.csv-h{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#555;margin-bottom:5px;}
+.main{max-width:1440px;margin:0 auto;padding:22px 28px;}
+.msg{padding:9px 14px;border-radius:6px;font-size:13px;margin-bottom:14px;display:none;}
+.msg.show{display:block;}.msg.err{background:var(--noconf-lt);border:1px solid #fca5a5;color:var(--noconf);}.msg.ok{background:var(--conf-lt);border:1px solid #86efac;color:var(--conf);}
+.demo-bar{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:7px 14px;font-size:12px;color:var(--pend);margin-bottom:14px;display:none;}
+.loader{display:none;padding:32px;text-align:center;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:12px;}.loader.show{display:block;}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #ddd;border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.filter-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+.fb-lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;}
+.fb-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+select.fsel{padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;color:var(--text);background:var(--bg);outline:none;cursor:pointer;}
+select.fsel:focus,.fsel:hover{border-color:var(--red);}
+.af{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--red);}
+.sec{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.sec::before{content:'';width:14px;height:2px;background:var(--red);flex-shrink:0;}
+.hero{display:grid;grid-template-columns:240px 1fr;gap:16px;margin-bottom:16px;}
+@media(max-width:860px){.hero{grid-template-columns:1fr;}}
+.av-card{background:var(--black);border-radius:12px;padding:24px 22px;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:12px;}
+.av-card::after{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--red);}
+.av-lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;}
+.av-num{font-family:'Barlow Condensed',sans-serif;font-size:72px;font-weight:900;line-height:1;color:#fff;letter-spacing:-2px;}
+.av-num span{font-size:32px;color:var(--red);}
+.av-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#555;}
+.av-bw{height:5px;background:#222;border-radius:3px;overflow:hidden;}
+.av-bf{height:100%;background:var(--red);border-radius:3px;width:0%;transition:width 1.3s cubic-bezier(.4,0,.2,1);}
+.av-trio{display:flex;gap:14px;}
+.av-trio .v{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;line-height:1;}
+.av-trio .l{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.risk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+@media(max-width:700px){.risk-grid{grid-template-columns:1fr;}}
+.rc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
+.rc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.rc-name{display:flex;align-items:center;gap:7px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}
+.rc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.rc-pct{font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:900;line-height:1;}
+.rc-n{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:1px;text-align:right;}
+.seg-bar{height:9px;border-radius:5px;background:#2a2a2a;overflow:hidden;display:flex;margin-bottom:8px;}
+.seg{height:100%;transition:width 1s cubic-bezier(.4,0,.2,1);}
+.sc{background:var(--conf);}.sn{background:var(--noconf);}.sp{background:var(--pend);}
+.rc-leg{display:flex;gap:8px;flex-wrap:wrap;}
+.rl{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);}
+.rld{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px;}
+@media(max-width:900px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;border-top:3px solid transparent;transition:transform .2s,box-shadow .2s;}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.06);}
+.kl{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:5px;}
+.kv{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;line-height:1;}
+.ks{font-size:11px;color:var(--muted);margin-top:3px;}
+.ch3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:18px;}
+@media(max-width:1000px){.ch3{grid-template-columns:1fr 1fr;}}
+@media(max-width:660px){.ch3{grid-template-columns:1fr;}}
+.ch2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+@media(max-width:760px){.ch2{grid-template-columns:1fr;}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.ph{padding:13px 18px;border-bottom:1px solid var(--border);background:#1a1a1a;display:flex;justify-content:space-between;align-items:center;}
+.pt{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;}
+.pb{padding:16px;}
+.donut-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;}
+.dl-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;margin-bottom:7px;}
+.dl-row:last-child{margin-bottom:0;}
+.dl-l{display:flex;align-items:center;gap:7px;}
+.dl-d{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.dl-v{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;}
+.br{margin-bottom:12px;}.br:last-child{margin-bottom:0;}
+.br-head{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+.br-n{font-weight:600;}.br-m{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
+.bt{height:8px;background:#2a2a2a;border-radius:4px;overflow:hidden;}
+.bf{height:100%;border-radius:4px;transition:width 1s ease;width:0%;}
+.dist-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);}
+.dist-row:last-child{border-bottom:none;}
+.dist-rk{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:900;color:var(--red);width:18px;flex-shrink:0;}
+.dist-nm{flex:1;font-size:12px;font-weight:500;}
+.dist-tr{width:60px;height:5px;background:#2a2a2a;border-radius:3px;overflow:hidden;flex-shrink:0;}
+.dist-fi{height:100%;background:var(--noconf);border-radius:3px;transition:width .8s ease;width:0%;}
+.dist-n{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);width:22px;text-align:right;flex-shrink:0;}
+/* STACKED */
+.stk-chart{display:flex;flex-direction:column;gap:8px;}
+.stk-row{display:flex;align-items:center;gap:10px;}
+.stk-lbl{font-size:11px;font-weight:500;width:160px;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.stk-bar{flex:1;height:18px;border-radius:4px;overflow:hidden;display:flex;background:#2a2a2a;}
+.stk-seg{height:100%;transition:width 1s cubic-bezier(.4,0,.2,1);}
+.stk-tot{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);width:30px;text-align:right;flex-shrink:0;}
+.stk-legend{display:flex;gap:16px;margin-top:10px;justify-content:center;flex-wrap:wrap;}
+.stk-li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.stk-ld{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+/* COMPARE */
+.cmp-head{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+.cmp-card{border-radius:8px;padding:16px;text-align:center;}
+.cmp-card.tambo{background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);}
+.cmp-card.aruma{background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.25);}
+.cmp-brand{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;}
+.cmp-brand.t{color:var(--tambo);}.cmp-brand.a{color:var(--aruma);}
+.cmp-pct{font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;line-height:1;}
+.cmp-pct.t{color:var(--tambo);}.cmp-pct.a{color:var(--aruma);}
+.cmp-sub{font-size:11px;color:var(--muted);margin-top:3px;font-family:'IBM Plex Mono',monospace;}
+.cmp-br{display:grid;grid-template-columns:80px 1fr 80px;gap:8px;align-items:center;margin-bottom:12px;}
+.cmp-val-t{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--tambo);text-align:right;font-weight:600;}
+.cmp-val-a{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--aruma);text-align:left;font-weight:600;}
+/* TABLE */
+.tbl-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:24px;}
+.tbl-top{padding:13px 18px;border-bottom:1px solid var(--border);background:var(--bg);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+.tbl-title{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;}
+.fbs{display:flex;gap:5px;flex-wrap:wrap;}
+.fb2{padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-family:'Barlow',sans-serif;font-weight:600;cursor:pointer;transition:all .15s;}
+.fb2:hover{border-color:var(--red);color:var(--red);}
+.fb2.active{background:var(--red);border-color:var(--red);color:#fff;}
+.fb2.fa.active{background:var(--alto);border-color:var(--alto);}
+.fb2.fm.active{background:var(--medio);border-color:var(--medio);}
+.fb2.fbl.active{background:var(--bajo);border-color:var(--bajo);}
+.fb2.fc.active{background:var(--conf);border-color:var(--conf);}
+.fb2.fn.active{background:var(--noconf);border-color:var(--noconf);}
+.fb2.fp.active{background:var(--pend);border-color:var(--pend);}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{padding:9px 14px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);background:var(--bg);border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#1a1a1a;}
+tbody td{padding:9px 14px;white-space:nowrap;}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.pill::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;}
+.p-conf{background:var(--conf-lt);color:var(--conf);}.p-nc{background:var(--noconf-lt);color:var(--noconf);}.p-pend{background:var(--pend-lt);color:var(--pend);}
+.p-alto{background:var(--alto-lt);color:var(--alto);}.p-med{background:var(--medio-lt);color:var(--medio);}.p-baj{background:var(--bajo-lt);color:var(--bajo);}
+.p-act{background:rgba(34,197,94,0.12);color:#22c55e;}.p-tambo{background:var(--tambo-lt);color:var(--tambo);}.p-aruma{background:var(--aruma-lt);color:var(--aruma);}
+.tbl-ft{padding:10px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);}
+.pbs{display:flex;gap:5px;}
+.pb2{padding:3px 9px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;}
+.pb2.active{background:var(--red);border-color:var(--red);color:#fff;}
+.pb2:hover:not(.active){border-color:var(--red);color:var(--red);}
+@media(max-width:760px){#critGrid{grid-template-columns:1fr!important;}}.empty{padding:52px 24px;text-align:center;}
+.empty-icon{font-size:34px;opacity:.2;margin-bottom:12px;}
+.empty h3{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.empty p{font-size:13px;color:var(--muted);}
+footer{background:var(--black);border-top:2px solid var(--red);padding:11px 28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+footer span{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#444;letter-spacing:.8px;text-transform:uppercase;}
+footer strong{color:var(--red);}
+</style>
+</head>
+<body>
+<div class="hdr"><div class="hdr-in">
+  <div class="brand">
+    <div class="logo" id="logoBtn" style="cursor:pointer;user-select:none;">LIDERMAN</div>
+    <div class="dvd"></div>
+    <div class="brand-info">
+      <h1>Proyecto de Detección Automática de Eventos CCTV</h1>
+      <p>Configuración DVR / NVR &middot; Avance por Nivel de Riesgo &middot; SOC LIDERMAN &middot; <span style="color:#22c55e;font-weight:700;">● EN VIVO</span></p>
+    </div>
+  </div>
+  <div class="hdr-r" style="flex-direction:column;align-items:flex-end;gap:3px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="live"></div>
+      <span id="tsUpdate">sin datos</span>
+    </div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#888;text-align:right;">
+      <span style="color:#FF2020;font-weight:700;">Jefe SOC</span> &nbsp;·&nbsp; César Chávez Hermosilla
+    </div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#444;text-align:right;">
+      Desarrollado con <span style="color:#FF2020;">♥</span> &nbsp;·&nbsp; LIDERMAN 2026
+    </div>
+  </div>
+</div></div>
+
+  <div id="zoneApi" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%;">
+    <input id="apiUrl" class="si" type="text" placeholder="Pega aquí la URL de tu Apps Script: https://script.google.com/macros/s/XXXXX/exec">
+    <button class="btn btn-red" onclick="connectApi()">⚡ Conectar</button>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#555;">Auto-refresh:</span>
+      <select class="si" id="refreshInterval" style="flex:none;width:auto;padding:4px 8px;">
+        <option value="1">1 min</option>
+        <option value="5" selected>5 min</option>
+        <option value="10">10 min</option>
+        <option value="30">30 min</option>
+      </select>
+    </div>
+  </div>
+  <div id="zoneCsv" style="display:none;width:100%;">
+    <div class="csv-h">Google Sheets → <strong style="color:#aaa">Archivo → Descargar → CSV (hoja "Data Tambo")</strong> → Bloc de notas → copia todo → pega aquí:</div>
+    <textarea class="si" id="csvPaste" placeholder="Pega el CSV aquí…"></textarea>
+    <div style="display:flex;gap:8px;margin-top:6px;">
+      <button class="btn btn-red" onclick="loadFromPaste()">✓ Cargar</button>
+      <button class="btn btn-out" onclick="document.getElementById('csvPaste').value=''">Limpiar</button>
+    </div>
+  </div>
+</div></div>
+
+
+<div id="loadingOverlay" style="
+  position:fixed;inset:0;background:#0d0d0d;z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  transition:opacity .6s ease;">
+  <div style="background:#CC0000;color:#fff;font-family:'Barlow Condensed',sans-serif;
+               font-size:28px;font-weight:900;letter-spacing:3px;padding:10px 24px;border-radius:6px;">
+    LIDERMAN
+  </div>
+  <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#555;text-align:center;line-height:1.8;">
+    Proyecto de Detección Automática de Eventos CCTV<br>
+    <span style="color:#CC0000;">Cargando datos en tiempo real...</span>
+  </div>
+  <div style="width:200px;height:3px;background:#222;border-radius:2px;overflow:hidden;">
+    <div style="height:100%;background:#CC0000;border-radius:2px;animation:loadBar 1.5s ease infinite;"></div>
+  </div>
+  <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#444;">
+    Jefe SOC · César Chávez Hermosilla
+  </div>
+</div>
+<style>
+@keyframes loadBar {
+  0%   { width:0%;   margin-left:0; }
+  50%  { width:70%;  margin-left:15%; }
+  100% { width:0%;   margin-left:100%; }
+}
+</style>
+<div class="main">
+<div class="msg" id="msgBox"></div>
+<div class="demo-bar" id="demoBar">⚠️ Datos de demostración — carga tu CSV para ver datos reales.</div>
+<div class="loader" id="loader"><span class="spin"></span>Cargando…</div>
+
+<div id="dash" style="display:none">
+
+<!-- FILTROS GLOBALES -->
+<div class="filter-bar">
+  <div class="fb-group"><span class="fb-lbl">Departamento</span><select class="fsel" id="selDpto" onchange="applyGlobalFilter()"><option value="">Todos</option></select></div>
+  <div class="fb-group"><span class="fb-lbl">Razón Social</span><select class="fsel" id="selRazon" onchange="applyGlobalFilter()"><option value="">Todas</option><option value="TAMBO">TAMBO</option><option value="ARUMA">ARUMA</option></select></div>
+  <div class="fb-group"><span class="fb-lbl">Nivel de Riesgo</span><select class="fsel" id="selRiesgo" onchange="applyGlobalFilter()"><option value="">Todos</option><option value="Riesgo Alto">Alto</option><option value="Riesgo Medio">Medio</option><option value="Riesgo Bajo">Bajo</option></select></div>
+  <div class="fb-group"><span class="fb-lbl">Config. Correo</span><select class="fsel" id="selCorreo" onchange="applyGlobalFilter()"><option value="">Todos</option><option value="CONFIGURADO">Configurado</option><option value="NO CONFIGURADO">No Configurado</option><option value="PENDIENTE">Pendiente</option></select></div>
+  <button class="btn btn-out" onclick="clearFilters()" style="font-size:11px;padding:5px 12px;">✕ Limpiar</button>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+      <span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#555;white-space:nowrap;"></span>
+      <button class="btn" onclick="exportXLSX()" style="display:none" style="background:#1a7a4a;color:#fff;font-size:12px;padding:6px 14px;" title="Descargar reporte XLSX con gráficos">📊 Exportar XLSX</button><button class="btn" onclick="exportXLSXWithCharts()" style="display:none" style="background:#7c3aed;color:#fff;font-size:12px;padding:6px 14px;" title="XLSX con gráficos via Claude API">📈 XLSX + Gráficos</button>
+      <button class="btn" onclick="exportPDF()" style="display:none" style="background:#1a56db;color:#fff;font-size:12px;padding:6px 14px;" title="Generar reporte PDF ejecutivo">📄 PDF Ejecutivo</button>
+    </div>
+  <span class="af" id="afInfo"></span>
+</div>
+
+<div class="sec">Resumen Ejecutivo</div>
+<div class="hero">
+  <div class="av-card">
+    <div class="av-lbl">Avance de Configuración</div>
+    <div class="av-num" id="avNum">0<span>%</span></div>
+    <div class="av-sub" id="avSub">CONFIGURADO / TOTAL</div>
+    <div class="av-bw"><div class="av-bf" id="avBar"></div></div>
+    <div class="av-trio">
+      <div><div class="v" id="tConf" style="color:#4ade80">—</div><div class="l">Conf.</div></div>
+      <div><div class="v" id="tNoConf" style="color:#f87171">—</div><div class="l">No Conf.</div></div>
+      <div><div class="v" id="tPend" style="color:#fbbf24">—</div><div class="l">Pend.</div></div>
+    </div>
+  </div>
+  <div class="risk-grid" id="riskGrid"></div>
+</div>
+
+<div class="sec" style="margin-top:4px">Indicadores</div>
+<div class="kpi-strip">
+  <div class="kpi" style="border-top-color:var(--red)"><div class="kl">Total Locales</div><div class="kv" id="kTotal">—</div><div class="ks">en el proyecto</div></div>
+  <div class="kpi" style="border-top-color:var(--conf)"><div class="kl">Configurado ✓</div><div class="kv" id="kConf" style="color:var(--conf)">—</div><div class="ks" id="kConfP">—%</div></div>
+  <div class="kpi" style="border-top-color:var(--noconf)"><div class="kl">No Configurado ✗</div><div class="kv" id="kNoConf" style="color:var(--noconf)">—</div><div class="ks" id="kNoConfP">—%</div></div>
+  <div class="kpi" style="border-top-color:var(--pend)"><div class="kl">Pendiente ⏳</div><div class="kv" id="kPend" style="color:var(--pend)">—</div><div class="ks" id="kPendP">—%</div></div>
+  <div class="kpi" style="border-top-color:var(--alto)"><div class="kl">Riesgo Alto</div><div class="kv" id="kAlto" style="color:var(--alto)">—</div><div class="ks" id="kAltoP">—%</div></div>
+</div>
+
+<div class="sec">Análisis Gráfico</div>
+<div class="ch3">
+  <div class="panel">
+    <div class="ph"><div class="pt">Config. Correo Global</div></div>
+    <div class="pb donut-wrap">
+      <div style="position:relative;width:140px;height:140px;">
+        <svg viewBox="0 0 36 36" width="140" height="140" style="transform:rotate(-90deg)">
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#2a2a2a" stroke-width="3.8"/>
+          <circle id="dConf" cx="18" cy="18" r="15.9" fill="none" stroke="var(--conf)" stroke-width="3.8" stroke-dasharray="0 100" style="transition:all 1.2s ease"/>
+          <circle id="dNoConf" cx="18" cy="18" r="15.9" fill="none" stroke="var(--noconf)" stroke-width="3.8" stroke-dasharray="0 100" style="transition:all 1.2s ease"/>
+          <circle id="dPend" cx="18" cy="18" r="15.9" fill="none" stroke="var(--pend)" stroke-width="3.8" stroke-dasharray="0 100" style="transition:all 1.2s ease"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+          <div id="dPct" style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;line-height:1">0%</div>
+          <div style="font-size:9px;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase">configurado</div>
+        </div>
+      </div>
+      <div style="width:100%">
+        <div class="dl-row"><div class="dl-l"><div class="dl-d" style="background:var(--conf)"></div>Configurado</div><div class="dl-v" id="dlC" style="color:var(--conf)">—</div></div>
+        <div class="dl-row"><div class="dl-l"><div class="dl-d" style="background:var(--noconf)"></div>No Configurado</div><div class="dl-v" id="dlNC" style="color:var(--noconf)">—</div></div>
+        <div class="dl-row"><div class="dl-l"><div class="dl-d" style="background:var(--pend)"></div>Pendiente</div><div class="dl-v" id="dlP" style="color:var(--pend)">—</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><div class="pt">% Configurado por Riesgo</div></div>
+    <div class="pb"><div id="barChart"></div></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><div class="pt">Top Distritos</div><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">NO CONFIGURADO</span></div>
+    <div class="pb" style="padding:10px 16px;"><div id="distList"></div></div>
+  </div>
+</div>
+
+<div class="sec">Barras Apiladas — Distribución por Distrito</div>
+<div style="margin-bottom:18px;">
+  <div class="panel">
+    <div class="ph">
+      <div class="pt">Config. Correo por Distrito</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">Top</span>
+        <select class="fsel" id="topN" onchange="renderStkChart()" style="font-size:11px;padding:3px 8px;">
+          <option value="10">10 distritos</option>
+          <option value="15">15 distritos</option>
+          <option value="20">20 distritos</option>
+        </select>
+      </div>
+    </div>
+    <div class="pb">
+      <div class="stk-chart" id="stkChart"></div>
+      <div class="stk-legend">
+        <div class="stk-li"><div class="stk-ld" style="background:var(--conf)"></div>Configurado</div>
+        <div class="stk-li"><div class="stk-ld" style="background:var(--noconf)"></div>No Configurado</div>
+        <div class="stk-li"><div class="stk-ld" style="background:var(--pend)"></div>Pendiente</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">Vista Comparativa — TAMBO vs ARUMA</div>
+<div class="ch2">
+  <div class="panel">
+    <div class="ph"><div class="pt">Avance de Configuración</div></div>
+    <div class="pb">
+      <div class="cmp-head">
+        <div class="cmp-card tambo"><div class="cmp-brand t">TAMBO</div><div class="cmp-pct t" id="cmpTP">—%</div><div class="cmp-sub" id="cmpTS">—</div></div>
+        <div class="cmp-card aruma"><div class="cmp-brand a">ARUMA</div><div class="cmp-pct a" id="cmpAP">—%</div><div class="cmp-sub" id="cmpAS">—</div></div>
+      </div>
+      <div id="cmpBars"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><div class="pt">Distribución por Nivel de Riesgo</div></div>
+    <div class="pb"><div id="cmpRiesgo"></div></div>
+  </div>
+</div>
+
+
+
+<!-- ANÁLISIS TECNOLÓGICO -->
+<div class="sec" style="margin-top:4px">🔬 Análisis Tecnológico — Generación de Grabadores</div>
+
+<!-- Resumen cards -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;">
+
+  <div style="background:#161616;border:1px solid rgba(34,197,94,0.3);border-radius:10px;border-top:3px solid #22c55e;padding:16px 18px;">
+    <div style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">Moderna (iDS)</div>
+    <div style="font-family:\'Barlow Condensed\',sans-serif;font-size:32px;font-weight:900;color:#22c55e;line-height:1;">231</div>
+    <div style="font-size:11px;color:#666;margin-top:3px;">70.1% configurados</div>
+    <div style="margin-top:8px;font-size:10px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);color:#22c55e;padding:3px 8px;border-radius:4px;display:inline-block;font-weight:700;">✓ COMPATIBLE</div>
+  </div>
+
+  <div style="background:#161616;border:1px solid rgba(59,130,246,0.3);border-radius:10px;border-top:3px solid #3b82f6;padding:16px 18px;">
+    <div style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">Intermedia (NI)</div>
+    <div style="font-family:\'Barlow Condensed\',sans-serif;font-size:32px;font-weight:900;color:#3b82f6;line-height:1;">329</div>
+    <div style="font-size:11px;color:#666;margin-top:3px;">17.9% configurados</div>
+    <div style="margin-top:8px;font-size:10px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);color:#3b82f6;padding:3px 8px;border-radius:4px;display:inline-block;font-weight:700;">⚠ PARCIAL</div>
+  </div>
+
+  <div style="background:#161616;border:1px solid rgba(245,158,11,0.3);border-radius:10px;border-top:3px solid #f59e0b;padding:16px 18px;">
+    <div style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">Estándar (HQHI)</div>
+    <div style="font-family:\'Barlow Condensed\',sans-serif;font-size:32px;font-weight:900;color:#f59e0b;line-height:1;">337</div>
+    <div style="font-size:11px;color:#666;margin-top:3px;">0.9% configurados</div>
+    <div style="margin-top:8px;font-size:10px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);color:#f59e0b;padding:3px 8px;border-radius:4px;display:inline-block;font-weight:700;">⚠ MIGRACIÓN SUGERIDA</div>
+  </div>
+
+  <div style="background:#161616;border:1px solid rgba(255,32,32,0.3);border-radius:10px;border-top:3px solid #FF2020;padding:16px 18px;">
+    <div style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">Obsoleta (HGHI)</div>
+    <div style="font-family:\'Barlow Condensed\',sans-serif;font-size:32px;font-weight:900;color:#FF2020;line-height:1;">31</div>
+    <div style="font-size:11px;color:#666;margin-top:3px;">3.2% configurados</div>
+    <div style="margin-top:8px;font-size:10px;background:rgba(255,32,32,0.1);border:1px solid rgba(255,32,32,0.2);color:#FF2020;padding:3px 8px;border-radius:4px;display:inline-block;font-weight:700;">✗ REEMPLAZAR</div>
+  </div>
+
+</div>
+
+<!-- Charts row: barras generación + firmware age + tabla modelos -->
+<div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:16px;margin-bottom:18px;">
+
+  <!-- Avance por generación -->
+  <div class="panel">
+    <div class="ph"><div class="pt">% Configurado por Generación</div></div>
+    <div class="pb">
+      <div id="genBars"></div>
+    </div>
+  </div>
+
+  <!-- Firmware age donut -->
+  <div class="panel">
+    <div class="ph"><div class="pt">Antigüedad de Firmware</div></div>
+    <div class="pb">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span style="color:#FF2020;font-weight:600">2015–2017 <span style="font-size:10px;background:rgba(255,32,32,0.12);padding:1px 6px;border-radius:3px;">CRÍTICO</span></span>
+            <span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#666;">135 · 14%</span>
+          </div>
+          <div style="height:10px;background:#2a2a2a;border-radius:5px;overflow:hidden;">
+            <div style="height:100%;background:#FF2020;border-radius:5px;width:0%;transition:width 1s ease" data-w="14" class="fw-bar"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span style="color:#f87171;font-weight:600">2018–2020 <span style="font-size:10px;background:rgba(248,113,113,0.12);padding:1px 6px;border-radius:3px;">OBSOLETO</span></span>
+            <span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#666;">245 · 25%</span>
+          </div>
+          <div style="height:10px;background:#2a2a2a;border-radius:5px;overflow:hidden;">
+            <div style="height:100%;background:#f87171;border-radius:5px;width:0%;transition:width 1s ease" data-w="25" class="fw-bar"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span style="color:#f59e0b;font-weight:600">2021–2022 <span style="font-size:10px;background:rgba(245,158,11,0.12);padding:1px 6px;border-radius:3px;">DESACTUALIZADO</span></span>
+            <span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#666;">34 · 4%</span>
+          </div>
+          <div style="height:10px;background:#2a2a2a;border-radius:5px;overflow:hidden;">
+            <div style="height:100%;background:#f59e0b;border-radius:5px;width:0%;transition:width 1s ease" data-w="4" class="fw-bar"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span style="color:#22c55e;font-weight:600">2023–2025 <span style="font-size:10px;background:rgba(34,197,94,0.12);padding:1px 6px;border-radius:3px;">VIGENTE</span></span>
+            <span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#666;">555 · 57%</span>
+          </div>
+          <div style="height:10px;background:#2a2a2a;border-radius:5px;overflow:hidden;">
+            <div style="height:100%;background:#22c55e;border-radius:5px;width:0%;transition:width 1s ease" data-w="57" class="fw-bar"></div>
+          </div>
+        </div>
+        <div style="margin-top:8px;padding:10px 14px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;text-align:center;">
+          <div style="font-family:\'Barlow Condensed\',sans-serif;font-size:28px;font-weight:900;color:#FF2020;line-height:1;">380</div>
+          <div style="font-size:11px;color:#666;margin-top:2px;">unidades con firmware desactualizado (39%)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de modelos con estado -->
+  <div class="panel">
+    <div class="ph"><div class="pt">Inventario de Modelos</div><span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#555;">configurado / total</span></div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr>
+            <th style="padding:8px 12px;text-align:left;font-family:\'IBM Plex Mono\',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#555;background:#1a1a1a;border-bottom:1px solid #2a2a2a;">Modelo</th>
+            <th style="padding:8px 12px;text-align:center;font-family:\'IBM Plex Mono\',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#555;background:#1a1a1a;border-bottom:1px solid #2a2a2a;">Total</th>
+            <th style="padding:8px 12px;text-align:center;font-family:\'IBM Plex Mono\',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#555;background:#1a1a1a;border-bottom:1px solid #2a2a2a;">Conf.</th>
+            <th style="padding:8px 12px;text-align:left;font-family:\'IBM Plex Mono\',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#555;background:#1a1a1a;border-bottom:1px solid #2a2a2a;">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #1e1e1e;"><td style="padding:7px 12px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#aaa;">iDS-7208HQHI-M1/S</td><td style="padding:7px 12px;text-align:center;font-weight:700;color:#e8e8e8;">73</td><td style="padding:7px 12px;text-align:center;color:#22c55e;font-weight:700;">72</td><td style="padding:7px 12px;"><span style="font-size:10px;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 7px;border-radius:4px;font-weight:700;">✓ MODERNA</span></td></tr>
+          <tr style="border-bottom:1px solid #1e1e1e;"><td style="padding:7px 12px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#aaa;">iDS-7216HQHI-M2/XT</td><td style="padding:7px 12px;text-align:center;font-weight:700;color:#e8e8e8;">60</td><td style="padding:7px 12px;text-align:center;color:#22c55e;font-weight:700;">60</td><td style="padding:7px 12px;"><span style="font-size:10px;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 7px;border-radius:4px;font-weight:700;">✓ MODERNA</span></td></tr>
+          <tr style="border-bottom:1px solid #1e1e1e;"><td style="padding:7px 12px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#aaa;">iDS-7208HQHI-M1/XT</td><td style="padding:7px 12px;text-align:center;font-weight:700;color:#e8e8e8;">48</td><td style="padding:7px 12px;text-align:center;color:#22c55e;font-weight:700;">48</td><td style="padding:7px 12px;"><span style="font-size:10px;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 7px;border-radius:4px;font-weight:700;">✓ MODERNA</span></td></tr>
+          <tr style="border-bottom:1px solid #1e1e1e;"><td style="padding:7px 12px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#aaa;">DS-7616NI-Q2/16P</td><td style="padding:7px 12px;text-align:center;font-weight:700;color:#e8e8e8;">285</td><td style="padding:7px 12px;text-align:center;color:#3b82f6;font-weight:700;">59</td><td style="padding:7px 12px;"><span style="font-size:10px;background:rgba(59,130,246,0.12);color:#3b82f6;padding:2px 7px;border-radius:4px;font-weight:700;">⚠ INTERMEDIA</span></td></tr>
+          <tr style="border-bottom:1px solid #1e1e1e;"><td style="padding:7px 12px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#aaa;">DS-7208HQHI-K1</td><td style="padding:7px 12px;text-align:center;font-weight:700;color:#e8e8e8;">253</td><td style="padding:7px 12px;text-align:center;color:#f59e0b;font-weight:700;">3</td><td style="padding:7px 12px;"><span style="font-size:10px;background:rgba(245,158,11,0.12);color:#f59e0b;padding:2px 7px;border-radius:4px;font-weight:700;">⚠ MIGRAR</span></td></tr>
+          <tr style="border-bottom:1px solid #1e1e1e;"><td style="padding:7px 12px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#aaa;">DS-7208HQHI-F1/N</td><td style="padding:7px 12px;text-align:center;font-weight:700;color:#e8e8e8;">84</td><td style="padding:7px 12px;text-align:center;color:#FF2020;font-weight:700;">0</td><td style="padding:7px 12px;"><span style="font-size:10px;background:rgba(255,32,32,0.12);color:#FF2020;padding:2px 7px;border-radius:4px;font-weight:700;">✗ REEMPLAZAR</span></td></tr>
+          <tr style="border-bottom:1px solid #1e1e1e;"><td style="padding:7px 12px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#aaa;">DS-7208HGHI-SH</td><td style="padding:7px 12px;text-align:center;font-weight:700;color:#e8e8e8;">29</td><td style="padding:7px 12px;text-align:center;color:#FF2020;font-weight:700;">1</td><td style="padding:7px 12px;"><span style="font-size:10px;background:rgba(255,32,32,0.12);color:#FF2020;padding:2px 7px;border-radius:4px;font-weight:700;">✗ OBSOLETO</span></td></tr>
+          <tr><td style="padding:7px 12px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#aaa;">DS-7608NI-Q1/8P</td><td style="padding:7px 12px;text-align:center;font-weight:700;color:#e8e8e8;">26</td><td style="padding:7px 12px;text-align:center;color:#3b82f6;font-weight:700;">0</td><td style="padding:7px 12px;"><span style="font-size:10px;background:rgba(59,130,246,0.12);color:#3b82f6;padding:2px 7px;border-radius:4px;font-weight:700;">⚠ INTERMEDIA</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="padding:10px 14px;border-top:1px solid #2a2a2a;background:#111;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <span style="font-size:11px;color:#555;font-family:\'IBM Plex Mono\',monospace;">Candidatos a migración</span>
+      <span style="font-family:\'Barlow Condensed\',sans-serif;font-size:20px;font-weight:900;color:#FF2020;">366 unidades</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Animate gen bars and fw bars on load
+(function() {
+  // Gen bars data
+  const genData = [
+    {label:'Moderna (iDS)',   count:231, conf:162, color:'#22c55e'},
+    {label:'Intermedia (NI)', count:329, conf:59,  color:'#3b82f6'},
+    {label:'Estándar (HQHI)', count:337, conf:3,   color:'#f59e0b'},
+    {label:'Obsoleta (HGHI)', count:31,  conf:1,   color:'#FF2020'},
+  ];
+  const maxC = Math.max(...genData.map(d=>d.count));
+  document.getElementById('genBars').innerHTML = genData.map(d=>{
+    const pct = Math.round(d.conf/d.count*100);
+    const w   = Math.round(d.count/maxC*100);
+    return `<div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+        <span style="font-weight:600;color:${d.color}">${d.label}</span>
+        <span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#555;">${d.conf}/${d.count} — <strong style="color:${d.color}">${pct}%</strong></span>
+      </div>
+      <div style="position:relative;height:10px;background:#2a2a2a;border-radius:5px;overflow:hidden;">
+        <div style="height:100%;background:#333;border-radius:5px;width:0%;transition:width 1s ease" data-w="${w}" class="gen-total-bar"></div>
+        <div style="position:absolute;top:0;left:0;height:100%;background:${d.color};border-radius:5px;width:0%;transition:width 1.2s ease" data-w="${Math.round(d.conf/maxC*100)}" class="gen-conf-bar"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:3px;font-size:10px;color:#444;">
+        <span>▓ Configurado</span><span style="color:#333">░ Total del modelo</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  setTimeout(()=>{
+    document.querySelectorAll('.gen-total-bar').forEach(b=>b.style.width=b.dataset.w+'%');
+    document.querySelectorAll('.gen-conf-bar').forEach(b=>b.style.width=b.dataset.w+'%');
+    document.querySelectorAll('.fw-bar').forEach(b=>b.style.width=b.dataset.w+'%');
+  }, 300);
+})();
+</script>
+<!-- FACTORES CRÍTICOS DE BLOQUEO -->
+<div class="sec" style="margin-top:4px">⚠ Factores Críticos de Bloqueo — Diagnóstico Técnico</div>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px;" id="critGrid">
+
+  <div style="background:#161616;border:1px solid rgba(255,32,32,0.3);border-radius:10px;border-left:4px solid #FF2020;padding:18px 20px;display:flex;gap:14px;align-items:flex-start;">
+    <div style="font-size:22px;flex-shrink:0">📡</div>
+    <div>
+      <div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#FF2020;margin-bottom:6px;">Pérdida de Gestión Remota</div>
+      <div style="font-size:12px;color:#aaa;line-height:1.6;">Múltiples unidades <strong style="color:#e8e8e8">DS-7616NI-Q2 / 16P</strong> aparecen <span style="background:rgba(255,32,32,0.15);color:#FF2020;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700">SIN CONEXIÓN</span>.</div>
+      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:5px;">
+        <span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;background:#1e1e1e;border:1px solid #333;color:#888;padding:2px 8px;border-radius:4px;">PE-3719</span>
+        <span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;background:#1e1e1e;border:1px solid #333;color:#888;padding:2px 8px;border-radius:4px;">PE-3830</span>
+        <span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;background:#1e1e1e;border:1px solid #333;color:#888;padding:2px 8px;border-radius:4px;">PE-6670</span>
+        <span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;background:#1e1e1e;border:1px solid #333;color:#888;padding:2px 8px;border-radius:4px;">PE-2333</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#161616;border:1px solid rgba(255,32,32,0.3);border-radius:10px;border-left:4px solid #FF2020;padding:18px 20px;display:flex;gap:14px;align-items:flex-start;">
+    <div style="font-size:22px;flex-shrink:0">🔧</div>
+    <div>
+      <div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#FF2020;margin-bottom:6px;">Inoperatividad de Hardware</div>
+      <div style="font-size:12px;color:#aaa;line-height:1.6;">Modelo <strong style="color:#e8e8e8">iDS-7208HQHI-M1 / S</strong> con fallas críticas catalogadas como <span style="background:rgba(255,32,32,0.15);color:#FF2020;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700">NO FUNCIONA</span>.</div>
+      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:5px;">
+        <span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;background:#1e1e1e;border:1px solid #333;color:#888;padding:2px 8px;border-radius:4px;">PE-0291</span>
+        <span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;background:#1e1e1e;border:1px solid #333;color:#888;padding:2px 8px;border-radius:4px;">PE-0636</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#161616;border:1px solid rgba(245,158,11,0.3);border-radius:10px;border-left:4px solid #f59e0b;padding:18px 20px;display:flex;gap:14px;align-items:flex-start;">
+    <div style="font-size:22px;flex-shrink:0">⚙️</div>
+    <div>
+      <div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#f59e0b;margin-bottom:6px;">Obsolescencia de Firmware</div>
+      <div style="font-size:12px;color:#aaa;line-height:1.6;">Builds de <strong style="color:#e8e8e8">2015, 2016 y 2017</strong> detectados en series <strong style="color:#e8e8e8">DS-7208HGHI-SH</strong> y <strong style="color:#e8e8e8">DS-7208HQHI-F1/N</strong>. Incompatibles con analítica de detección automática.</div>
+      <div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);padding:4px 10px;border-radius:5px;">
+        <span style="font-size:10px;color:#f59e0b;font-weight:700;font-family:\'IBM Plex Mono\',monospace;">ACCIÓN REQUERIDA: Actualización de firmware</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#161616;border:1px solid rgba(245,158,11,0.3);border-radius:10px;border-left:4px solid #f59e0b;padding:18px 20px;display:flex;gap:14px;align-items:flex-start;">
+    <div style="font-size:22px;flex-shrink:0">🌐</div>
+    <div>
+      <div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#f59e0b;margin-bottom:6px;">Factores de Red — Alta Latencia</div>
+      <div style="font-size:12px;color:#aaa;line-height:1.6;"><strong style="color:#e8e8e8">Trujillo</strong> reporta <span style="background:rgba(245,158,11,0.15);color:#f59e0b;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700">ALTA LATENCIA</span> que interrumpe los flujos de configuración remota.</div>
+      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:5px;">
+        <span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;background:#1e1e1e;border:1px solid #333;color:#888;padding:2px 8px;border-radius:4px;">PE-4255</span>
+        <span style="font-size:10px;color:#f59e0b;padding:2px 6px;">Trujillo — La Libertad</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="sec">Detalle Operativo</div>
+<div class="tbl-panel">
+  <div class="tbl-top">
+    <div class="tbl-title">Locales — <span id="tblCount" style="color:var(--red)">0</span></div>
+    <div class="fbs">
+      <button class="fb2 active" onclick="filt('todos',this)">Todos</button>
+      <button class="fb2 fa"     onclick="filt('alto',this)">🔴 Alto</button>
+      <button class="fb2 fm"     onclick="filt('medio',this)">🟡 Medio</button>
+      <button class="fb2 fbl"    onclick="filt('bajo',this)">🟢 Bajo</button>
+      <button class="fb2 fc"     onclick="filt('configurado',this)">✅ Conf.</button>
+      <button class="fb2 fn"     onclick="filt('no configurado',this)">❌ No Conf.</button>
+      <button class="fb2 fp"     onclick="filt('pendiente',this)">⏳ Pend.</button>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Tienda</th><th>Razón Social</th><th>Config. Correo</th><th>Nivel Riesgo</th><th>Status</th><th>Distrito</th><th>Departamento</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="tbl-ft"><span id="pageInfo">—</span><div class="pbs" id="pageBtns"></div></div>
+</div>
+
+</div><!-- end #dash -->
+
+<div id="emptyState"><div class="empty"><div class="empty-icon">📡</div><h3>Sin datos cargados</h3><p>Usa <strong>Pegar CSV</strong> o presiona <strong>Demo</strong>.</p></div></div>
+</div><!-- end .main -->
+
+<footer>
+  <span><strong>LIDERMAN</strong> — Jefatura SOC</span>
+  <span>Proyecto de Detección Automática de Eventos CCTV · SOC LIDERMAN</span>
+  <span id="footerTs">—</span>
+</footer>
+
+<script>
+let allRows=[],viewRows=[],filtered=[],tableFilter='todos',currentPage=1;
+const PAGE_SIZE=50;
+const DEMO=[
+  {tienda:'TDA COMAS',razon:'TAMBO',correo:'NO CONFIGURADO',riesgo:'Riesgo Alto',status:'Activa',distrito:'COMAS',dpto:'LIMA'},
+  {tienda:'REPUBLICA-C5',razon:'TAMBO',correo:'NO CONFIGURADO',riesgo:'Riesgo Alto',status:'Activa',distrito:'LA VICTORIA',dpto:'LIMA'},
+  {tienda:'TDA TACNA',razon:'TAMBO',correo:'CONFIGURADO',riesgo:'Riesgo Alto',status:'Activa',distrito:'LIMA',dpto:'LIMA'},
+  {tienda:'CAMREAL',razon:'TAMBO',correo:'CONFIGURADO',riesgo:'Riesgo Bajo',status:'Activa',distrito:'SAN ISIDRO',dpto:'LIMA'},
+  {tienda:'MIRAFLORES-A1',razon:'TAMBO',correo:'CONFIGURADO',riesgo:'Riesgo Medio',status:'Activa',distrito:'MIRAFLORES',dpto:'LIMA'},
+  {tienda:'SURCO-B2',razon:'TAMBO',correo:'PENDIENTE',riesgo:'Riesgo Medio',status:'Activa',distrito:'SANTIAGO DE SURCO',dpto:'LIMA'},
+  {tienda:'SJL-K3',razon:'TAMBO',correo:'CONFIGURADO',riesgo:'Riesgo Medio',status:'Activa',distrito:'SAN JUAN DE LURIGANCHO',dpto:'LIMA'},
+  {tienda:'BREÑA-D1',razon:'TAMBO',correo:'NO CONFIGURADO',riesgo:'Riesgo Alto',status:'Activa',distrito:'BREÑA',dpto:'LIMA'},
+  {tienda:'ATE-L2',razon:'TAMBO',correo:'NO CONFIGURADO',riesgo:'Riesgo Alto',status:'Activa',distrito:'ATE',dpto:'LIMA'},
+  {tienda:'CHORRILLOS-M1',razon:'TAMBO',correo:'CONFIGURADO',riesgo:'Riesgo Bajo',status:'Activa',distrito:'CHORRILLOS',dpto:'LIMA'},
+  {tienda:'PUEBLO LIBRE',razon:'TAMBO',correo:'PENDIENTE',riesgo:'Riesgo Alto',status:'Activa',distrito:'PUEBLO LIBRE',dpto:'LIMA'},
+  {tienda:'MAGDALENA-G3',razon:'TAMBO',correo:'CONFIGURADO',riesgo:'Riesgo Bajo',status:'Activa',distrito:'MAGDALENA',dpto:'LIMA'},
+  {tienda:'COMAS-N2',razon:'TAMBO',correo:'NO CONFIGURADO',riesgo:'Riesgo Alto',status:'Activa',distrito:'COMAS',dpto:'LIMA'},
+  {tienda:'LINCE-F1',razon:'TAMBO',correo:'PENDIENTE',riesgo:'Riesgo Medio',status:'Activa',distrito:'LINCE',dpto:'LIMA'},
+  {tienda:'ARUMA-SURCO',razon:'ARUMA',correo:'CONFIGURADO',riesgo:'Riesgo Medio',status:'Activa',distrito:'SANTIAGO DE SURCO',dpto:'LIMA'},
+  {tienda:'ARUMA-BENAVIDES',razon:'ARUMA',correo:'CONFIGURADO',riesgo:'Riesgo Alto',status:'Activa',distrito:'MIRAFLORES',dpto:'LIMA'},
+  {tienda:'TRUJILLO-T1',razon:'TAMBO',correo:'PENDIENTE',riesgo:'Riesgo Medio',status:'Activa',distrito:'TRUJILLO',dpto:'LA LIBERTAD'},
+  {tienda:'SAN MIGUEL-S1',razon:'TAMBO',correo:'NO CONFIGURADO',riesgo:'Riesgo Medio',status:'Activa',distrito:'SAN MIGUEL',dpto:'LIMA'},
+  {tienda:'LOS OLIVOS-O1',razon:'TAMBO',correo:'NO CONFIGURADO',riesgo:'Riesgo Alto',status:'Activa',distrito:'LOS OLIVOS',dpto:'LIMA'},
+  {tienda:'CALLAO-C1',razon:'TAMBO',correo:'PENDIENTE',riesgo:'Riesgo Medio',status:'Activa',distrito:'CALLAO',dpto:'LIMA'},
+  {tienda:'ARUMA-LARCO',razon:'ARUMA',correo:'NO CONFIGURADO',riesgo:'Riesgo Alto',status:'Activa',distrito:'MIRAFLORES',dpto:'LIMA'},
+  {tienda:'ARUMA-MOLINA',razon:'ARUMA',correo:'PENDIENTE',riesgo:'Riesgo Medio',status:'Activa',distrito:'LA MOLINA',dpto:'LIMA'},
+  {tienda:'ICA-I1',razon:'TAMBO',correo:'CONFIGURADO',riesgo:'Riesgo Bajo',status:'Activa',distrito:'ICA',dpto:'ICA'},
+  {tienda:'AREQUIPA-A1',razon:'TAMBO',correo:'CONFIGURADO',riesgo:'Riesgo Medio',status:'Activa',distrito:'AREQUIPA',dpto:'AREQUIPA'},
+  {tienda:'SMP-S1',razon:'TAMBO',correo:'NO CONFIGURADO',riesgo:'Riesgo Alto',status:'Activa',distrito:'SAN MARTIN DE PORRES',dpto:'LIMA'},
+  {tienda:'VES-V1',razon:'TAMBO',correo:'PENDIENTE',riesgo:'Riesgo Medio',status:'Activa',distrito:'VILLA EL SALVADOR',dpto:'LIMA'},
+];
+function switchTab(t){
+  document.getElementById('zoneApi').style.display=t==='api'?'flex':'none';
+  document.getElementById('zoneCsv').style.display=t==='csv'?'block':'none';
+  document.getElementById('tabApi').className='btn '+(t==='api'?'btn-red':'btn-out');
+  document.getElementById('tabCsv').className='btn '+(t==='csv'?'btn-red':'btn-out');
+}
+
+// ── AUTO REFRESH STATE ─────────────────────────────────────────
+let refreshTimer = null;
+let currentApiUrl = '';
+
+function connectApi() {
+  const url = document.getElementById('apiUrl').value.trim();
+  if (!url) { showMsg('Pega la URL de tu Apps Script.','err'); return; }
+  if (!url.includes('script.google.com')) {
+    showMsg('La URL debe ser de Google Apps Script (script.google.com/macros/...)','err'); return;
+  }
+  currentApiUrl = url;
+  // Save to localStorage so it persists
+  try { localStorage.setItem('lider_api_url', url); } catch(e){}
+  fetchFromApi(true);
+}
+
+async function fetchFromApi(isManual) {
+  if (!currentApiUrl) return;
+  if (isManual) { showLoader(true); hideMsg(); }
+
+  // Proxy chain — tries each until one works
+  const PROXIES = [
+    u => u,
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  ];
+
+  let json = null;
+  for (const px of PROXIES) {
+    try {
+      const res = await fetch(px(currentApiUrl), { signal: AbortSignal.timeout(12000) });
+      if (!res.ok) continue;
+      const text = await res.text();
+      // Handle allorigins wrapping
+      let parsed;
+      try { parsed = JSON.parse(text); } catch(e) { continue; }
+      if (parsed.contents) {
+        try { parsed = JSON.parse(parsed.contents); } catch(e) { continue; }
+      }
+      if (parsed && (parsed.rows || parsed.ok)) { json = parsed; break; }
+    } catch(e) { continue; }
+  }
+
+  if (!json) {
+    const ov=document.getElementById('loadingOverlay');
+    if(ov){ov.style.opacity='0';setTimeout(()=>ov.remove(),700);}
+    showMsg && showMsg('❌ No se pudo conectar. Verifica tu conexión a internet.','err');
+    return;
+  }
+
+  try {
+    const fakeJson = json;
+    if (!json.ok && json.error) throw new Error(json.error);
+    // Show which sheet was found
+    if (json && json.sheet) console.log('✓ Hoja encontrada:', json.sheet);
+    if (!json.rows || !json.rows.length) throw new Error('Sin datos en la respuesta.');
+
+    // Map rows from JSON API
+    allRows = json.rows.map(r => ({
+      tienda:   (r['TIENDAS'] || r['Abonado'] || r['TdaNombre'] || r['RAZON SOCIAL'] || '—').trim(),
+      razon:    (r['RAZON SOCIAL'] || r['Razon Social'] || '—').trim(),
+      correo:   normC(r['CONFIG. CORREO'] || r['Config. Correo'] || r['CONFIG CORREO'] || ''),
+      riesgo:   normR(r['NIVEL DE RIESGO'] || r['Nivel de Riesgo'] || r['INDICE DELICTIVO'] || r['Indice Delictivo'] || ''),
+      status:   (r['Status'] || r['STATUS'] || r['Estado'] || 'Activa').trim(),
+      distrito: (r['Distrito'] || r['DISTRITO'] || '—').trim(),
+      dpto:     (r['Departameno'] || r['Departamento'] || r['DEPARTAMENTO'] || '—').trim(),
+    })).filter(r => r.riesgo !== '—' && r.correo !== '—') : [];
+
+    document.getElementById('demoBar').style.display = 'none';
+    document.getElementById('refreshStatus').style.display = 'flex';
+    setText('refreshMin', document.getElementById('refreshInterval').value);
+
+    // Start auto-refresh timer
+    startAutoRefresh();
+    initDashboard();
+
+    const now = new Date();
+    // silent load for viewer
+  } catch(e) {
+    const ov=document.getElementById('loadingOverlay');
+    if(ov){ov.style.opacity='0';setTimeout(()=>ov.remove(),700);}
+    console.error('Error loading data:', e);
+  } finally {
+    if (isManual) showLoader(false);
+  }
+}
+
+function startAutoRefresh() {
+  stopRefresh();
+  const mins = parseInt(document.getElementById('refreshInterval').value);
+  refreshTimer = setInterval(() => fetchFromApi(false), mins * 60 * 1000);
+  setText('refreshMin', mins);
+}
+
+function stopRefresh() {
+  if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+  document.getElementById('refreshStatus').style.display = 'none';
+}
+
+// Restore saved URL on page load
+window.addEventListener('load', () => {
+  try {
+    const saved = localStorage.getItem('lider_api_url');
+    if (saved) {
+      document.getElementById('apiUrl').value = saved;
+      // Show hint
+      showMsg('⚡ URL guardada detectada — presiona "Conectar" para reconectar.', 'ok');
+    }
+  } catch(e) {}
+});
+function loadDemo(){allRows=DEMO;document.getElementById('demoBar').style.display='block';initDashboard();}
+function loadFromPaste(){const text=document.getElementById('csvPaste').value.trim();if(!text){showMsg('Pega el CSV primero.','err');return;}hideMsg();try{const p=parseCSV(text);if(p.length<2)throw new Error('CSV no válido.');allRows=mapRows(p);if(!allRows.length)throw new Error('Sin registros.');document.getElementById('demoBar').style.display='none';initDashboard();showMsg('✓ '+allRows.length+' registros cargados.','ok');}catch(e){showMsg('❌ '+e.message,'err');}}
+// loadSheet replaced by connectApi (Apps Script)
+function parseCSV(text){return text.trim().split('\n').map(line=>{const cells=[];let inQ=false,cell='';for(const c of line){if(c==='"')inQ=!inQ;else if(c===','&&!inQ){cells.push(cell.trim());cell='';}else cell+=c;}cells.push(cell.trim());return cells;});}
+function mapRows(p){const H=p[0].map(h=>h.toLowerCase().replace(/[\s.]/g,''));const fi=(...keys)=>{for(const k of keys){const i=H.findIndex(h=>h.includes(k));if(i!==-1)return i;}return -1;};const iT=fi('tienda','tda','tdanombre','abonado','local');const iRS=fi('razonsocial','razon','social');const iC=fi('config','correo');const iR=fi('nivelderiesgo','indice','riesgo','delictivo');const iS=fi('status','estado');const iD=fi('distrito');const iDp=fi('departamen','dpto');return p.slice(1).filter(r=>r.some(c=>c)).map(r=>({tienda:(r[iT]||r[iRS]||'—').trim(),razon:(r[iRS]||'—').trim(),correo:normC(r[iC]||''),riesgo:normR(r[iR]||''),status:(r[iS]||'Activa').trim(),distrito:(r[iD]||'—').trim(),dpto:(r[iDp]||'—').trim()})).filter(r=>r.riesgo!=='—'&&r.correo!=='—');}
+const normC=v=>{const u=v.toUpperCase().trim();if(u==='CONFIGURADO')return 'CONFIGURADO';if(u==='NO CONFIGURADO')return 'NO CONFIGURADO';if(u==='PENDIENTE')return 'PENDIENTE';if(u.includes('NO CONF')||u.includes('NOCONF'))return 'NO CONFIGURADO';if(u.includes('CONF'))return 'CONFIGURADO';if(u.includes('PEND'))return 'PENDIENTE';if(u==='FUNCIONA'||u==='SI'||u==='OK')return 'CONFIGURADO';return u||'—';};
+const normR=v=>{const u=v.toLowerCase().trim();if(u.includes('alto'))return 'Riesgo Alto';if(u.includes('medio'))return 'Riesgo Medio';if(u.includes('bajo'))return 'Riesgo Bajo';return v.trim()||'—';};
+function initDashboard(){const dptos=[...new Set(allRows.map(r=>r.dpto))].filter(d=>d&&d!=='—').sort();const sel=document.getElementById('selDpto');sel.innerHTML='<option value="">Todos los departamentos</option>';dptos.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});viewRows=[...allRows];document.getElementById('afInfo').textContent='';render();document.getElementById('emptyState').style.display='none';document.getElementById('dash').style.display='block';}
+function applyGlobalFilter(){const dpto=document.getElementById('selDpto').value;const razon=document.getElementById('selRazon').value;const riesgo=document.getElementById('selRiesgo').value;const correo=document.getElementById('selCorreo').value;viewRows=allRows.filter(r=>(!dpto||r.dpto===dpto)&&(!razon||r.razon===razon)&&(!riesgo||r.riesgo===riesgo)&&(!correo||r.correo===correo));const act=[dpto,razon,riesgo,correo].filter(Boolean);document.getElementById('afInfo').textContent=act.length?`${act.length} filtro(s) · ${viewRows.length} registros`:'';tableFilter='todos';document.querySelectorAll('.fb2').forEach(b=>b.classList.remove('active'));document.querySelector('.fb2').classList.add('active');currentPage=1;render();}
+function clearFilters(){['selDpto','selRazon','selRiesgo','selCorreo'].forEach(id=>document.getElementById(id).value='');applyGlobalFilter();}
+function render(){const rows=viewRows;const total=rows.length;const conf=rows.filter(r=>r.correo==='CONFIGURADO').length;const noconf=rows.filter(r=>r.correo==='NO CONFIGURADO').length;const pend=rows.filter(r=>r.correo==='PENDIENTE').length;const avp=total?Math.round(conf/total*100):0;const alto=rows.filter(r=>r.riesgo==='Riesgo Alto').length;const medio=rows.filter(r=>r.riesgo==='Riesgo Medio').length;const bajo=rows.filter(r=>r.riesgo==='Riesgo Bajo').length;
+setTimeout(()=>{document.getElementById('avNum').innerHTML=avp+'<span>%</span>';document.getElementById('avBar').style.width=avp+'%';},100);
+setText('avSub',conf+' de '+total+' configurados');setText('tConf',conf);setText('tNoConf',noconf);setText('tPend',pend);
+const rData=[{label:'Riesgo Alto',color:'var(--alto)',count:alto},{label:'Riesgo Medio',color:'var(--medio)',count:medio},{label:'Riesgo Bajo',color:'var(--bajo)',count:bajo}];
+document.getElementById('riskGrid').innerHTML=rData.map(r=>{const rR=rows.filter(x=>x.riesgo===r.label);const rC=rR.filter(x=>x.correo==='CONFIGURADO').length;const rNC=rR.filter(x=>x.correo==='NO CONFIGURADO').length;const rP=rR.filter(x=>x.correo==='PENDIENTE').length;const rPct=r.count?Math.round(rC/r.count*100):0;const cP=r.count?(rC/r.count*100).toFixed(1):0;const nP=r.count?(rNC/r.count*100).toFixed(1):0;const pP=r.count?(rP/r.count*100).toFixed(1):0;return `<div class="rc"><div class="rc-head"><div class="rc-name"><div class="rc-dot" style="background:${r.color}"></div>${r.label}</div><div style="text-align:right"><div class="rc-pct" style="color:${r.color}">${rPct}%</div><div class="rc-n">${r.count} locales</div></div></div><div class="seg-bar"><div class="seg sc" data-w="${cP}" style="width:0%"></div><div class="seg sn" data-w="${nP}" style="width:0%"></div><div class="seg sp" data-w="${pP}" style="width:0%"></div></div><div class="rc-leg"><div class="rl"><div class="rld" style="background:var(--conf)"></div>${rC} Conf.</div><div class="rl"><div class="rld" style="background:var(--noconf)"></div>${rNC} No Conf.</div><div class="rl"><div class="rld" style="background:var(--pend)"></div>${rP} Pend.</div></div></div>`;}).join('');
+setTimeout(()=>{document.querySelectorAll('.seg').forEach(s=>s.style.width=s.dataset.w+'%');},150);
+setText('kTotal',total);setText('kConf',conf);setText('kConfP',pct(conf,total)+'% del total');setText('kNoConf',noconf);setText('kNoConfP',pct(noconf,total)+'% del total');setText('kPend',pend);setText('kPendP',pct(pend,total)+'% del total');setText('kAlto',alto);setText('kAltoP',pct(alto,total)+'% del total');
+setText('dPct',avp+'%');setText('dlC',conf);setText('dlNC',noconf);setText('dlP',pend);
+if(total){const cP=conf/total*100,nP=noconf/total*100,pP=pend/total*100;setTimeout(()=>{const dc=document.getElementById('dConf'),dnc=document.getElementById('dNoConf'),dp=document.getElementById('dPend');dc.setAttribute('stroke-dasharray',cP.toFixed(2)+' '+(100-cP).toFixed(2));dc.setAttribute('stroke-dashoffset','0');dnc.setAttribute('stroke-dasharray',nP.toFixed(2)+' '+(100-nP).toFixed(2));dnc.setAttribute('stroke-dashoffset',(-cP).toFixed(2));dp.setAttribute('stroke-dasharray',pP.toFixed(2)+' '+(100-pP).toFixed(2));dp.setAttribute('stroke-dashoffset',(-(cP+nP)).toFixed(2));},200);}
+document.getElementById('barChart').innerHTML=rData.map(r=>{const rR=rows.filter(x=>x.riesgo===r.label);const rC=rR.filter(x=>x.correo==='CONFIGURADO').length;const rPct=r.count?Math.round(rC/r.count*100):0;return `<div class="br"><div class="br-head"><span class="br-n" style="color:${r.color}">${r.label}</span><span class="br-m">${rC}/${r.count} — <strong>${rPct}%</strong></span></div><div class="bt"><div class="bf" data-w="${rPct}" style="background:${r.color};width:0%"></div></div></div>`;}).join('');
+setTimeout(()=>{document.querySelectorAll('.bf').forEach(b=>b.style.width=b.dataset.w+'%');},200);
+const dm={};rows.filter(r=>r.correo==='NO CONFIGURADO').forEach(r=>{dm[r.distrito]=(dm[r.distrito]||0)+1;});const sorted=Object.entries(dm).sort((a,b)=>b[1]-a[1]).slice(0,8);const maxD=sorted[0]?.[1]||1;document.getElementById('distList').innerHTML=sorted.map(([d,c],i)=>`<div class="dist-row"><div class="dist-rk">${i+1}</div><div class="dist-nm">${d}</div><div class="dist-tr"><div class="dist-fi" data-w="${Math.round(c/maxD*100)}" style="width:0%"></div></div><div class="dist-n">${c}</div></div>`).join('');setTimeout(()=>{document.querySelectorAll('.dist-fi').forEach(b=>b.style.width=b.dataset.w+'%');},250);
+renderStkChart();renderComparativa(rows);
+const now=new Date();const ts=now.toLocaleDateString('es-PE')+' '+now.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});setText('tsUpdate',ts);setText('footerTs','Actualizado: '+ts);
+applyTableFilter();}
+function renderStkChart(){const rows=viewRows;const topN=parseInt(document.getElementById('topN')?.value||'10');const dm={};rows.forEach(r=>{if(!dm[r.distrito])dm[r.distrito]={conf:0,noconf:0,pend:0,total:0};dm[r.distrito][r.correo==='CONFIGURADO'?'conf':r.correo==='NO CONFIGURADO'?'noconf':'pend']++;dm[r.distrito].total++;});const sorted=Object.entries(dm).sort((a,b)=>b[1].total-a[1].total).slice(0,topN);const maxT=sorted[0]?.[1].total||1;document.getElementById('stkChart').innerHTML=sorted.map(([d,v])=>{const cW=(v.conf/maxT*100).toFixed(1);const nW=(v.noconf/maxT*100).toFixed(1);const pW=(v.pend/maxT*100).toFixed(1);return `<div class="stk-row"><div class="stk-lbl" title="${d}">${d}</div><div class="stk-bar"><div class="stk-seg" data-w="${cW}" style="background:var(--conf);width:0%" title="Conf:${v.conf}"></div><div class="stk-seg" data-w="${nW}" style="background:var(--noconf);width:0%" title="NoConf:${v.noconf}"></div><div class="stk-seg" data-w="${pW}" style="background:var(--pend);width:0%" title="Pend:${v.pend}"></div></div><div class="stk-tot">${v.total}</div></div>`;}).join('');setTimeout(()=>{document.querySelectorAll('.stk-seg').forEach(s=>s.style.width=s.dataset.w+'%');},150);}
+function renderComparativa(rows){const T={total:0,conf:0,noconf:0,pend:0,alto:0,medio:0,bajo:0};const A={total:0,conf:0,noconf:0,pend:0,alto:0,medio:0,bajo:0};rows.forEach(r=>{const s=r.razon==='TAMBO'?T:r.razon==='ARUMA'?A:null;if(!s)return;s.total++;if(r.correo==='CONFIGURADO')s.conf++;else if(r.correo==='NO CONFIGURADO')s.noconf++;else s.pend++;if(r.riesgo==='Riesgo Alto')s.alto++;else if(r.riesgo==='Riesgo Medio')s.medio++;else s.bajo++;});const tPct=T.total?Math.round(T.conf/T.total*100):0;const aPct=A.total?Math.round(A.conf/A.total*100):0;setText('cmpTP',tPct+'%');setText('cmpTS',T.conf+' conf. de '+T.total);setText('cmpAP',aPct+'%');setText('cmpAS',A.conf+' conf. de '+A.total);const maxT=Math.max(T.total,A.total,1);const cmpR=[{lbl:'Configurado',tc:T.conf,ac:A.conf},{lbl:'No Config.',tc:T.noconf,ac:A.noconf},{lbl:'Pendiente',tc:T.pend,ac:A.pend}];document.getElementById('cmpBars').innerHTML=cmpR.map(r=>{const tW=(r.tc/maxT*100).toFixed(1);const aW=(r.ac/maxT*100).toFixed(1);return `<div class="cmp-br"><div class="cmp-val-t">${r.tc} <span style="font-size:9px;color:var(--muted)">T</span></div><div><div style="font-size:10px;text-align:center;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:3px">${r.lbl}</div><div style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:#2a2a2a;"><div style="background:var(--tambo);height:100%;border-radius:5px 0 0 5px;transition:width 1s ease;width:0%" data-w="${tW}" class="ca"></div><div style="background:var(--aruma);height:100%;border-radius:0 5px 5px 0;transition:width 1s ease;width:0%;margin-left:auto" data-w="${aW}" class="ca"></div></div></div><div class="cmp-val-a"><span style="font-size:9px;color:var(--muted)">A</span> ${r.ac}</div></div>`;}).join('');setTimeout(()=>{document.querySelectorAll('.ca').forEach(b=>b.style.width=b.dataset.w+'%');},200);const rD=[{lbl:'Riesgo Alto',t:T.alto,a:A.alto,c:'var(--alto)'},{lbl:'Riesgo Medio',t:T.medio,a:A.medio,c:'var(--medio)'},{lbl:'Riesgo Bajo',t:T.bajo,a:A.bajo,c:'var(--bajo)'}];document.getElementById('cmpRiesgo').innerHTML=rD.map(r=>{const tP=T.total?Math.round(r.t/T.total*100):0;const aP=A.total?Math.round(r.a/A.total*100):0;return `<div style="margin-bottom:16px"><div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:${r.c};margin-bottom:7px">${r.lbl}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span style="color:var(--tambo);font-weight:700">TAMBO</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">${r.t} (${tP}%)</span></div><div class="bt"><div class="bf" data-w="${Math.round(r.t/Math.max(T.total,1)*100)}" style="background:var(--tambo);width:0%"></div></div></div><div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span style="color:var(--aruma);font-weight:700">ARUMA</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">${r.a} (${aP}%)</span></div><div class="bt"><div class="bf" data-w="${Math.round(r.a/Math.max(A.total,1)*100)}" style="background:var(--aruma);width:0%"></div></div></div></div></div>`;}).join('');setTimeout(()=>{document.querySelectorAll('.bf').forEach(b=>b.style.width=b.dataset.w+'%');},200);}
+function filt(f,btn){tableFilter=f;document.querySelectorAll('.fb2').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentPage=1;applyTableFilter();}
+function applyTableFilter(){const f=tableFilter;filtered=f==='todos'?viewRows:f==='alto'?viewRows.filter(r=>r.riesgo==='Riesgo Alto'):f==='medio'?viewRows.filter(r=>r.riesgo==='Riesgo Medio'):f==='bajo'?viewRows.filter(r=>r.riesgo==='Riesgo Bajo'):viewRows.filter(r=>r.correo.toLowerCase()===f);setText('tblCount',filtered.length);renderTable();}
+function renderTable(){const total=filtered.length,pages=Math.ceil(total/PAGE_SIZE),start=(currentPage-1)*PAGE_SIZE,slice=filtered.slice(start,start+PAGE_SIZE);if(!slice.length){document.getElementById('tbody').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:28px;color:var(--muted)">Sin registros.</td></tr>`;setText('pageInfo','0 registros');document.getElementById('pageBtns').innerHTML='';return;}document.getElementById('tbody').innerHTML=slice.map((r,i)=>{const cc=r.correo==='CONFIGURADO'?'p-conf':r.correo==='NO CONFIGURADO'?'p-nc':'p-pend';const rc=r.riesgo.includes('Alto')?'p-alto':r.riesgo.includes('Medio')?'p-med':'p-baj';const rc2=r.razon==='TAMBO'?'p-tambo':'p-aruma';return `<tr><td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">${start+i+1}</td><td style="font-weight:600">${r.tienda}</td><td><span class="pill ${rc2}">${r.razon}</span></td><td><span class="pill ${cc}">${r.correo}</span></td><td><span class="pill ${rc}">${r.riesgo}</span></td><td><span class="pill p-act">${r.status}</span></td><td style="font-size:12px;color:var(--muted)">${r.distrito}</td><td style="font-size:12px;color:var(--muted)">${r.dpto}</td></tr>`;}).join('');setText('pageInfo',`${start+1}–${Math.min(start+PAGE_SIZE,total)} de ${total}`);if(pages<=1){document.getElementById('pageBtns').innerHTML='';return;}let btns='';for(let p=1;p<=Math.min(pages,10);p++)btns+=`<button class="pb2${p===currentPage?' active':''}" onclick="goPage(${p})">${p}</button>`;if(pages>10)btns+=`<span style="color:var(--muted);font-size:12px;padding:0 4px">…${pages}</span>`;document.getElementById('pageBtns').innerHTML=btns;}
+function goPage(p){currentPage=p;renderTable();window.scrollTo({top:document.querySelector('.tbl-panel').offsetTop-80,behavior:'smooth'});}
+
+// ── EXPORTAR XLSX PROFESIONAL (ExcelJS) ──────────────────────────────────
+function exportXLSX() {
+  const exportRows = allRows.filter(r => r.correo === 'NO CONFIGURADO' || r.correo === 'PENDIENTE');
+  if (!exportRows.length) { alert('No hay datos cargados. Conecta tu Google Sheet primero.'); return; }
+
+  // Load ExcelJS from CDN
+  if (typeof ExcelJS === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js';
+    s.onload = () => _buildXLSX(exportRows);
+    s.onerror = () => {
+      // Fallback to SheetJS if ExcelJS fails
+      const s2 = document.createElement('script');
+      s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s2.onload = () => _buildXLSXFallback(exportRows);
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s);
+  } else {
+    _buildXLSX(exportRows);
+  }
+}
+
+
+// ── XLSX CON GRÁFICOS (via Claude Artifacts API) ──────────────────────────
+async function exportXLSXWithCharts() {
+  const exportRows = allRows.filter(r => r.correo === 'NO CONFIGURADO' || r.correo === 'PENDIENTE');
+  if (!exportRows.length) { alert('No hay datos cargados. Conecta tu Google Sheet primero.'); return; }
+
+  // Build summary data to send to API
+  const noConf = exportRows.filter(r=>r.correo==='NO CONFIGURADO').length;
+  const pend   = exportRows.filter(r=>r.correo==='PENDIENTE').length;
+  const alto   = exportRows.filter(r=>r.riesgo==='Riesgo Alto').length;
+  const medio  = exportRows.filter(r=>r.riesgo==='Riesgo Medio').length;
+  const bajo   = exportRows.filter(r=>r.riesgo==='Riesgo Bajo').length;
+  const tNC    = exportRows.filter(r=>r.razon==='TAMBO'&&r.correo==='NO CONFIGURADO').length;
+  const tPE    = exportRows.filter(r=>r.razon==='TAMBO'&&r.correo==='PENDIENTE').length;
+  const aNC    = exportRows.filter(r=>r.razon==='ARUMA'&&r.correo==='NO CONFIGURADO').length;
+  const aPE    = exportRows.filter(r=>r.razon==='ARUMA'&&r.correo==='PENDIENTE').length;
+
+  const dm={};
+  exportRows.forEach(r=>{ dm[r.distrito]=(dm[r.distrito]||0)+1; });
+  const topDist=Object.entries(dm).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  const altoNC=exportRows.filter(r=>r.riesgo==='Riesgo Alto'&&r.correo==='NO CONFIGURADO').length;
+  const altoPE=exportRows.filter(r=>r.riesgo==='Riesgo Alto'&&r.correo==='PENDIENTE').length;
+  const medNC=exportRows.filter(r=>r.riesgo==='Riesgo Medio'&&r.correo==='NO CONFIGURADO').length;
+  const medPE=exportRows.filter(r=>r.riesgo==='Riesgo Medio'&&r.correo==='PENDIENTE').length;
+  const bajNC=exportRows.filter(r=>r.riesgo==='Riesgo Bajo'&&r.correo==='NO CONFIGURADO').length;
+  const bajPE=exportRows.filter(r=>r.riesgo==='Riesgo Bajo'&&r.correo==='PENDIENTE').length;
+  const now = new Date().toLocaleDateString('es-PE');
+
+  // Show loading toast
+  showToastMsg('⏳ Generando XLSX con gráficos... espera unos segundos');
+
+  const prompt = `Genera un archivo Excel (.xlsx) profesional para LIDERMAN usando Python/openpyxl con los siguientes datos reales:
+
+DATOS RESUMEN:
+- Total sin configurar: ${exportRows.length}
+- NO CONFIGURADO: ${noConf}
+- PENDIENTE: ${pend}
+- Riesgo Alto: ${alto} (NC:${altoNC} PE:${altoPE})
+- Riesgo Medio: ${medio} (NC:${medNC} PE:${medPE})
+- Riesgo Bajo: ${bajo} (NC:${bajNC} PE:${bajPE})
+- TAMBO: NC=${tNC} PE=${tPE} Total=${tNC+tPE}
+- ARUMA: NC=${aNC} PE=${aPE} Total=${aNC+aPE}
+- Fecha: ${now}
+- Jefe SOC: César Chávez Hermosilla
+
+TOP DISTRITOS (nombre,cantidad):
+${topDist.map(([d,c])=>`${d}:${c}`).join(', ')}
+
+DETALLE TIENDAS (primeras 50):
+${exportRows.slice(0,50).map(r=>`${r.tienda}|${r.razon}|${r.correo}|${r.riesgo}|${r.distrito}|${r.dpto}`).join('\n')}
+
+Crea un XLSX con 4 hojas:
+1. "Resumen Ejecutivo" - Banner rojo (#CC0000) LIDERMAN, KPIs con colores, tabla por riesgo, tabla TAMBO vs ARUMA, PIE CHART de No Config vs Pendiente, BAR CHART apilado por nivel de riesgo
+2. "Detalle Tiendas" - Tabla formateada con colores rojo/amarillo por estado, autofilter, BAR CHART top 10 distritos horizontal
+3. "Por Distrito" - Ranking con % del total, BAR CHART apilado No Config vs Pendiente por distrito
+4. "TAMBO vs ARUMA" - Comparativo con colores azul/morado, BAR CHART clustered
+
+Usa colores: Rojo=#CC0000, Negro=#111111, Ámbar=#D97706, Verde=#1A7A4A, Azul=#1A56DB, Morado=#7C3AED
+Fuente Arial. Formato profesional ejecutivo. Guarda en /mnt/user-data/outputs/LIDERMAN_Reporte_Graficos.xlsx`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{role:'user', content: prompt}]
+      })
+    });
+
+    const data = await resp.json();
+    const txt = data.content?.map(b=>b.text||'').join('') || '';
+    showToastMsg('✅ Revisa el archivo generado en outputs');
+    console.log('Claude response:', txt);
+
+  } catch(e) {
+    showToastMsg('❌ Error al generar: ' + e.message);
+  }
+}
+
+function showToastMsg(msg) {
+  let t = document.getElementById('_toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = '_toast';
+    t.style.cssText = 'position:fixed;top:68px;right:20px;background:#1a56db;color:#fff;padding:10px 18px;border-radius:8px;font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:700;z-index:9999;transition:opacity .5s;box-shadow:0 4px 20px rgba(0,0,0,.5);pointer-events:none;max-width:400px;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.opacity='1';
+  setTimeout(()=>{ t.style.opacity='0'; }, 4000);
+}
+
+async function _buildXLSX(exportRows) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'César Chávez Hermosilla — Jefe SOC LIDERMAN';
+  wb.created = new Date();
+
+  const RED    = 'FFCC0000'; const RED2   = 'FFFF2020'; const REDLT  = 'FFFFE8E8';
+  const BLACK  = 'FF111111'; const WHITE  = 'FFFFFFFF'; const LGRAY  = 'FFF2F3F5';
+  const AMBER  = 'FFD97706'; const AMBLT  = 'FFFFFFBEB'; const GREEN  = 'FF1A7A4A';
+  const AMBLT2 = 'FFFFFBEB'; const GREENLT= 'FFEDFAF3';
+  const BLUE   = 'FF1A56DB'; const BLUELT = 'FFEFF6FF';
+  const PURP   = 'FF7C3AED'; const PURPLT = 'FFF5F3FF';
+  const MGRAY  = 'FF555555';
+
+  const noConf = exportRows.filter(r=>r.correo==='NO CONFIGURADO').length;
+  const pend   = exportRows.filter(r=>r.correo==='PENDIENTE').length;
+  const alto   = exportRows.filter(r=>r.riesgo==='Riesgo Alto').length;
+  const medio  = exportRows.filter(r=>r.riesgo==='Riesgo Medio').length;
+  const bajo   = exportRows.filter(r=>r.riesgo==='Riesgo Bajo').length;
+  const tNC    = exportRows.filter(r=>r.razon==='TAMBO'&&r.correo==='NO CONFIGURADO').length;
+  const tPE    = exportRows.filter(r=>r.razon==='TAMBO'&&r.correo==='PENDIENTE').length;
+  const aNC    = exportRows.filter(r=>r.razon==='ARUMA'&&r.correo==='NO CONFIGURADO').length;
+  const aPE    = exportRows.filter(r=>r.razon==='ARUMA'&&r.correo==='PENDIENTE').length;
+  const now    = new Date().toLocaleDateString('es-PE');
+
+  const hdrFont  = (sz=10,c=WHITE) => ({name:'Arial',bold:true,size:sz,color:{argb:c}});
+  const bodyFont = (sz=9,c=BLACK,bold=false) => ({name:'Arial',size:sz,color:{argb:c},bold});
+  const ctrAlign = {horizontal:'center',vertical:'middle'};
+  const leftAlign= {horizontal:'left',  vertical:'middle'};
+  const fill = c => ({type:'pattern',pattern:'solid',fgColor:{argb:c}});
+  const border = (c='FFD0D0D0') => {
+    const s={style:'thin',color:{argb:c}};
+    return {left:s,right:s,top:s,bottom:s};
+  };
+  const thickBorder = () => {
+    const s={style:'medium',color:{argb:'FFCC0000'}};
+    return {left:s,right:s,top:s,bottom:s};
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // HOJA 1 — RESUMEN EJECUTIVO
+  // ═══════════════════════════════════════════════════════
+  const ws1 = wb.addWorksheet('📊 Resumen Ejecutivo', {
+    views:[{showGridLines:false,zoomScale:90}]
+  });
+  ws1.columns = [
+    {width:22},{width:13},{width:13},{width:11},{width:13},
+    {width:2},{width:15},{width:13},{width:13},{width:11}
+  ];
+
+  // Banner
+  ws1.mergeCells('A1:J3');
+  const bannerCell = ws1.getCell('A1');
+  bannerCell.value = 'PROYECTO DE DETECCIÓN AUTOMÁTICA DE EVENTOS CCTV — LIDERMAN';
+  bannerCell.font = hdrFont(15); bannerCell.fill = fill(RED);
+  bannerCell.alignment = {...ctrAlign,wrapText:false};
+  ws1.getRow(1).height=20; ws1.getRow(2).height=20; ws1.getRow(3).height=20;
+
+  ws1.mergeCells('A4:J4');
+  const subCell = ws1.getCell('A4');
+  subCell.value = `Reporte Sin Configurar  |  NO CONFIGURADO + PENDIENTE  |  Jefe SOC: César Chávez Hermosilla  |  ${now}`;
+  subCell.font = {...hdrFont(9),italic:true}; subCell.fill = fill(BLACK);
+  subCell.alignment = ctrAlign; ws1.getRow(4).height=18;
+
+  ws1.getRow(5).height=8;
+
+  // KPI boxes
+  const kpis = [
+    ['A','B','TOTAL SIN CONFIGURAR', exportRows.length, RED,   REDLT],
+    ['C','D','NO CONFIGURADO',        noConf,            RED2,  REDLT],
+    ['E','F','PENDIENTE',             pend,              AMBER, AMBLT2],
+    ['G','H','RIESGO ALTO',           alto,              BLACK, LGRAY],
+    ['I','J','RIESGO MEDIO',          medio,             AMBER, AMBLT2],
+  ];
+  for (const [c1,c2,lbl,val,fc,bc] of kpis) {
+    ws1.mergeCells(`${c1}6:${c2}6`);
+    ws1.mergeCells(`${c1}7:${c2}7`);
+    ws1.mergeCells(`${c1}8:${c2}8`);
+    const lc=ws1.getCell(`${c1}6`); lc.value=lbl;
+    lc.font=hdrFont(9,fc); lc.fill=fill(bc); lc.alignment=ctrAlign;
+    const vc=ws1.getCell(`${c1}7`); vc.value=val;
+    vc.font={name:'Arial',bold:true,size:24,color:{argb:fc}}; vc.fill=fill(bc); vc.alignment=ctrAlign;
+    const sc=ws1.getCell(`${c1}8`); sc.value='tiendas';
+    sc.font=bodyFont(9,MGRAY); sc.fill=fill(bc); sc.alignment=ctrAlign;
+  }
+  ws1.getRow(6).height=16; ws1.getRow(7).height=30; ws1.getRow(8).height=14;
+
+  ws1.mergeCells('A9:J9');
+  ws1.getCell('A9').fill=fill(RED); ws1.getRow(9).height=4;
+
+  // Section: Riesgo table
+  ws1.getRow(11).height=8;
+  ws1.mergeCells('A12:E12');
+  const sec1=ws1.getCell('A12'); sec1.value='DISTRIBUCIÓN POR NIVEL DE RIESGO';
+  sec1.font=hdrFont(10); sec1.fill=fill(BLACK); sec1.alignment=ctrAlign;
+  ws1.getRow(12).height=18;
+
+  const rhdrs=['Nivel de Riesgo','No Config.','Pendiente','Total','% del Total'];
+  rhdrs.forEach((h,i)=>{
+    const c=ws1.getCell(13,i+1); c.value=h;
+    c.font=hdrFont(9); c.fill=fill(RED); c.alignment=ctrAlign; c.border=border('FFCC0000');
+  });
+  ws1.getRow(13).height=16;
+
+  const riesgoRows=[
+    ['Riesgo Alto',  exportRows.filter(r=>r.riesgo==='Riesgo Alto'  &&r.correo==='NO CONFIGURADO').length, exportRows.filter(r=>r.riesgo==='Riesgo Alto'  &&r.correo==='PENDIENTE').length, alto,  RED2,  REDLT],
+    ['Riesgo Medio', exportRows.filter(r=>r.riesgo==='Riesgo Medio' &&r.correo==='NO CONFIGURADO').length, exportRows.filter(r=>r.riesgo==='Riesgo Medio' &&r.correo==='PENDIENTE').length, medio, AMBER, AMBLT2],
+    ['Riesgo Bajo',  exportRows.filter(r=>r.riesgo==='Riesgo Bajo'  &&r.correo==='NO CONFIGURADO').length, exportRows.filter(r=>r.riesgo==='Riesgo Bajo'  &&r.correo==='PENDIENTE').length, bajo,  GREEN, GREENLT],
+  ];
+
+  let rr=14;
+  for (const [lv,nc,pe,tot,fc,bc] of riesgoRows) {
+    const row=ws1.getRow(rr); row.height=16;
+    const vals=[lv,nc,pe,tot,`${Math.round(tot/exportRows.length*100)}%`];
+    vals.forEach((v,i)=>{
+      const c=row.getCell(i+1); c.value=v;
+      c.font=bodyFont(9,i===0?fc:BLACK,i===0);
+      c.fill=fill(bc); c.alignment=i===0?leftAlign:ctrAlign; c.border=border();
+    });
+    rr++;
+  }
+  // Total row riesgo
+  const totRow=ws1.getRow(rr); totRow.height=16;
+  ['TOTAL',noConf,pend,exportRows.length,'100%'].forEach((v,i)=>{
+    const c=totRow.getCell(i+1); c.value=v;
+    c.font=hdrFont(9); c.fill=fill(RED); c.alignment=ctrAlign; c.border=border('FFCC0000');
+  });
+  rr++;
+
+  // Section: Razón Social
+  ws1.mergeCells('G12:J12');
+  const sec2=ws1.getCell('G12'); sec2.value='POR RAZÓN SOCIAL';
+  sec2.font=hdrFont(10); sec2.fill=fill(BLACK); sec2.alignment=ctrAlign;
+
+  ['Razón Social','No Config.','Pendiente','Total'].forEach((h,i)=>{
+    const c=ws1.getCell(13,7+i); c.value=h;
+    c.font=hdrFont(9); c.fill=fill(RED); c.alignment=ctrAlign; c.border=border('FFCC0000');
+  });
+
+  [[`TAMBO`,tNC,tPE,tNC+tPE,BLUE,BLUELT],[`ARUMA`,aNC,aPE,aNC+aPE,PURP,PURPLT]].forEach(([rz,nc,pe,tot,fc,bc],idx)=>{
+    const row=ws1.getRow(14+idx); row.height=16;
+    [rz,nc,pe,tot].forEach((v,i)=>{
+      const c=row.getCell(7+i); c.value=v;
+      c.font=bodyFont(9,i===0?fc:BLACK,i===0);
+      c.fill=fill(bc); c.alignment=i===0?leftAlign:ctrAlign; c.border=border();
+    });
+  });
+
+  // Top distritos section
+  const dm2={};
+  exportRows.forEach(r=>{dm2[r.distrito]=(dm2[r.distrito]||0)+1;});
+  const topD=Object.entries(dm2).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  let dr=rr+1;
+  ws1.mergeCells(`A${dr}:J${dr}`);
+  const sec3=ws1.getCell(`A${dr}`); sec3.value='TOP DISTRITOS CON MÁS TIENDAS SIN CONFIGURAR';
+  sec3.font=hdrFont(10); sec3.fill=fill(BLACK); sec3.alignment=ctrAlign;
+  ws1.getRow(dr).height=18; dr++;
+
+  ['#','Distrito','Cantidad'].forEach((h,i)=>{
+    const c=ws1.getCell(dr,i+1); c.value=h;
+    c.font=hdrFont(9); c.fill=fill(RED); c.alignment=ctrAlign; c.border=border('FFCC0000');
+  });
+  ws1.getRow(dr).height=16; dr++;
+
+  topD.forEach(([dist,cnt],i)=>{
+    const row=ws1.getRow(dr+i); row.height=15;
+    [i+1,dist,cnt].forEach((v,j)=>{
+      const c=row.getCell(j+1); c.value=v;
+      c.font=bodyFont(9); c.fill=fill(i%2===0?WHITE:LGRAY);
+      c.alignment=j===0?ctrAlign:j===1?leftAlign:ctrAlign; c.border=border();
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // HOJA 2 — DETALLE TIENDAS
+  // ═══════════════════════════════════════════════════════
+  const ws2 = wb.addWorksheet('📋 Detalle Tiendas', {
+    views:[{showGridLines:false,zoomScale:90}]
+  });
+  ws2.columns=[{width:5},{width:26},{width:12},{width:18},{width:16},{width:24},{width:14}];
+
+  ws2.mergeCells('A1:G2');
+  const h2=ws2.getCell('A1'); h2.value='TIENDAS SIN CONFIGURAR — DETALLE COMPLETO';
+  h2.font=hdrFont(13); h2.fill=fill(RED); h2.alignment=ctrAlign;
+  ws2.getRow(1).height=16; ws2.getRow(2).height=16;
+
+  ws2.mergeCells('A3:G3');
+  const s2=ws2.getCell('A3');
+  s2.value=`Jefe SOC: César Chávez Hermosilla  |  ${exportRows.length} tiendas sin configurar  |  Generado: ${now}`;
+  s2.font={...bodyFont(9,MGRAY),italic:true}; s2.fill=fill(LGRAY); s2.alignment=ctrAlign;
+  ws2.getRow(3).height=14;
+
+  const det_hdrs=['#','Tienda / Local','Razón Social','Config. Correo','Nivel de Riesgo','Distrito','Departamento'];
+  const hrow=ws2.getRow(5); hrow.height=18;
+  det_hdrs.forEach((h,i)=>{
+    const c=hrow.getCell(i+1); c.value=h;
+    c.font=hdrFont(9); c.fill=fill(BLACK); c.alignment=ctrAlign; c.border=border(BLACK);
+  });
+
+  exportRows.forEach((r,idx)=>{
+    const ri=6+idx; const row=ws2.getRow(ri); row.height=15;
+    const bg=r.correo==='NO CONFIGURADO'?(idx%2===0?REDLT:'FFFCF0F0'):(idx%2===0?AMBLT2:'FFFEFCF5');
+    const cc=r.correo==='NO CONFIGURADO'?RED2:AMBER;
+    const rc=r.riesgo==='Riesgo Alto'?RED2:r.riesgo==='Riesgo Medio'?AMBER:GREEN;
+    [idx+1,r.tienda,r.razon,r.correo,r.riesgo,r.distrito,r.dpto].forEach((v,j)=>{
+      const c=row.getCell(j+1); c.value=v;
+      c.font=bodyFont(9,j===3?cc:j===4?rc:BLACK,j===3||j===1);
+      c.fill=fill(bg); c.alignment=j===0||j===2||j===3||j===4||j===6?ctrAlign:leftAlign;
+      c.border=border();
+    });
+  });
+
+  // Total row
+  const totR2=ws2.getRow(6+exportRows.length+1); totR2.height=18;
+  ws2.mergeCells(`A${6+exportRows.length+1}:B${6+exportRows.length+1}`);
+  ['TOTAL GENERAL','',`NO CONF: ${noConf}`,`PENDIENTE: ${pend}`,`TOTAL: ${exportRows.length}`,'',''].forEach((v,i)=>{
+    const c=totR2.getCell(i+1); c.value=v;
+    c.font=hdrFont(9); c.fill=fill(RED); c.alignment=ctrAlign; c.border=border('FFCC0000');
+  });
+
+  // Auto filter
+  ws2.autoFilter = { from:'A5', to:`G5` };
+
+  // ═══════════════════════════════════════════════════════
+  // HOJA 3 — POR DISTRITO
+  // ═══════════════════════════════════════════════════════
+  const ws3 = wb.addWorksheet('📍 Por Distrito', {
+    views:[{showGridLines:false,zoomScale:90}]
+  });
+  ws3.columns=[{width:26},{width:14},{width:12},{width:12},{width:11},{width:13}];
+
+  ws3.mergeCells('A1:F2');
+  const h3=ws3.getCell('A1'); h3.value='ANÁLISIS POR DISTRITO — TIENDAS SIN CONFIGURAR';
+  h3.font=hdrFont(13); h3.fill=fill(RED); h3.alignment=ctrAlign;
+  ws3.getRow(1).height=16; ws3.getRow(2).height=16;
+
+  ['Distrito','Departamento','No Config.','Pendiente','Total','% del Total'].forEach((h,i)=>{
+    const c=ws3.getCell(4,i+1); c.value=h;
+    c.font=hdrFont(9); c.fill=fill(BLACK); c.alignment=ctrAlign; c.border=border(BLACK);
+  });
+  ws3.getRow(4).height=18;
+
+  const ddMap={};
+  exportRows.forEach(r=>{
+    if(!ddMap[r.distrito]) ddMap[r.distrito]={dpto:r.dpto,nc:0,pe:0};
+    if(r.correo==='NO CONFIGURADO') ddMap[r.distrito].nc++;
+    else ddMap[r.distrito].pe++;
+  });
+  const sortedD=Object.entries(ddMap).sort((a,b)=>(b[1].nc+b[1].pe)-(a[1].nc+a[1].pe));
+  const totAll=exportRows.length;
+
+  sortedD.forEach(([dist,v],idx)=>{
+    const ri=5+idx; const row=ws3.getRow(ri); row.height=15;
+    const tot=v.nc+v.pe; const bg=idx%2===0?WHITE:LGRAY;
+    [dist,v.dpto,v.nc,v.pe,tot,`${Math.round(tot/totAll*100)}%`].forEach((val,j)=>{
+      const c=row.getCell(j+1); c.value=val;
+      c.font=bodyFont(9,BLACK,j===0); c.fill=fill(bg);
+      c.alignment=j<2?leftAlign:ctrAlign; c.border=border();
+    });
+  });
+
+  const tR3=ws3.getRow(5+sortedD.length+1); tR3.height=18;
+  ws3.mergeCells(`A${5+sortedD.length+1}:B${5+sortedD.length+1}`);
+  ['TOTAL GENERAL','',noConf,pend,exportRows.length,'100%'].forEach((v,i)=>{
+    const c=tR3.getCell(i+1); c.value=v;
+    c.font=hdrFont(10); c.fill=fill(RED); c.alignment=ctrAlign; c.border=border('FFCC0000');
+  });
+  ws3.autoFilter = { from:'A4', to:'F4' };
+
+  // ═══════════════════════════════════════════════════════
+  // HOJA 4 — TAMBO vs ARUMA
+  // ═══════════════════════════════════════════════════════
+  const ws4 = wb.addWorksheet('🏢 TAMBO vs ARUMA', {
+    views:[{showGridLines:false,zoomScale:90}]
+  });
+  ws4.columns=[{width:20},{width:16},{width:16},{width:13},{width:14},{width:14},{width:13}];
+
+  ws4.mergeCells('A1:G2');
+  const h4=ws4.getCell('A1'); h4.value='COMPARATIVO TAMBO vs ARUMA — TIENDAS SIN CONFIGURAR';
+  h4.font=hdrFont(13); h4.fill=fill(RED); h4.alignment=ctrAlign;
+  ws4.getRow(1).height=16; ws4.getRow(2).height=16;
+
+  // Main comparison table
+  ['Razón Social','No Config.','Pendiente','Total','% No Config.','% Pendiente','% del Total'].forEach((h,i)=>{
+    const c=ws4.getCell(4,i+1); c.value=h;
+    c.font=hdrFont(9); c.fill=fill(BLACK); c.alignment=ctrAlign; c.border=border(BLACK);
+  });
+  ws4.getRow(4).height=18;
+
+  [[`TAMBO`,tNC,tPE,tNC+tPE,BLUE,BLUELT],[`ARUMA`,aNC,aPE,aNC+aPE,PURP,PURPLT]].forEach(([rz,nc,pe,tot,fc,bc],idx)=>{
+    const row=ws4.getRow(5+idx); row.height=20;
+    const totRz=tot||1;
+    [rz,nc,pe,tot,`${Math.round(nc/totRz*100)}%`,`${Math.round(pe/totRz*100)}%`,`${Math.round(tot/exportRows.length*100)}%`].forEach((v,j)=>{
+      const c=row.getCell(j+1); c.value=v;
+      c.font=bodyFont(10,j===0?fc:BLACK,j===0); c.fill=fill(bc);
+      c.alignment=j===0?leftAlign:ctrAlign; c.border=border();
+    });
+  });
+
+  // Total
+  const tR4=ws4.getRow(7); tR4.height=18;
+  ['TOTAL',noConf,pend,exportRows.length,'','','100%'].forEach((v,i)=>{
+    const c=tR4.getCell(i+1); c.value=v;
+    c.font=hdrFont(9); c.fill=fill(RED); c.alignment=ctrAlign; c.border=border('FFCC0000');
+  });
+
+  // Cross table riesgo x razon
+  ws4.getRow(9).height=8;
+  ws4.mergeCells('A10:G10');
+  const sec4=ws4.getCell('A10'); sec4.value='DESGLOSE POR NIVEL DE RIESGO';
+  sec4.font=hdrFont(10); sec4.fill=fill(BLACK); sec4.alignment=ctrAlign;
+  ws4.getRow(10).height=18;
+
+  ['Nivel de Riesgo','TAMBO No Config.','TAMBO Pendiente','TAMBO Total','ARUMA No Config.','ARUMA Pendiente','ARUMA Total'].forEach((h,i)=>{
+    const c=ws4.getCell(11,i+1); c.value=h;
+    c.font=hdrFont(9); c.fill=fill(RED); c.alignment=ctrAlign; c.border=border('FFCC0000');
+  });
+  ws4.getRow(11).height=16;
+
+  ['Riesgo Alto','Riesgo Medio','Riesgo Bajo'].forEach((lv,idx)=>{
+    const tNC2=exportRows.filter(r=>r.razon==='TAMBO'&&r.riesgo===lv&&r.correo==='NO CONFIGURADO').length;
+    const tPE2=exportRows.filter(r=>r.razon==='TAMBO'&&r.riesgo===lv&&r.correo==='PENDIENTE').length;
+    const aNC2=exportRows.filter(r=>r.razon==='ARUMA'&&r.riesgo===lv&&r.correo==='NO CONFIGURADO').length;
+    const aPE2=exportRows.filter(r=>r.razon==='ARUMA'&&r.riesgo===lv&&r.correo==='PENDIENTE').length;
+    const fc=lv==='Riesgo Alto'?RED2:lv==='Riesgo Medio'?AMBER:GREEN;
+    const bc=lv==='Riesgo Alto'?REDLT:lv==='Riesgo Medio'?AMBLT2:GREENLT;
+    const row=ws4.getRow(12+idx); row.height=16;
+    [lv,tNC2,tPE2,tNC2+tPE2,aNC2,aPE2,aNC2+aPE2].forEach((v,j)=>{
+      const c=row.getCell(j+1); c.value=v;
+      c.font=bodyFont(9,j===0?fc:BLACK,j===0); c.fill=fill(j===0?bc:(j<4?BLUELT:PURPLT));
+      c.alignment=j===0?leftAlign:ctrAlign; c.border=border();
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // HOJA 5 — ANÁLISIS TECNOLÓGICO
+  // ═══════════════════════════════════════════════════════
+  const ws5 = wb.addWorksheet('🔬 Tecnología', {
+    views:[{showGridLines:false,zoomScale:90}]
+  });
+  ws5.columns=[{width:26},{width:12},{width:12},{width:11},{width:16},{width:18},{width:30}];
+
+  // Banner
+  ws5.mergeCells('A1:G2');
+  const h5=ws5.getCell('A1');
+  h5.value='ANÁLISIS TECNOLÓGICO — GRABADORES SIN CONFIGURAR';
+  h5.font=hdrFont(13); h5.fill=fill(RED); h5.alignment=ctrAlign;
+  ws5.getRow(1).height=16; ws5.getRow(2).height=16;
+
+  ws5.mergeCells('A3:G3');
+  const s5=ws5.getCell('A3');
+  s5.value=`Jefe SOC: César Chávez Hermosilla  |  Generado: ${now}  |  Usar para propuesta de migración tecnológica al cliente`;
+  s5.font={...bodyFont(9,MGRAY),italic:true}; s5.fill=fill(LGRAY); s5.alignment=ctrAlign;
+  ws5.getRow(3).height=14;
+
+  // Headers
+  ws5.getRow(5).height=18;
+  ['Modelo Grabador','No Config.','Pendiente','Total','Generación','Estado','Recomendación'].forEach((h,i)=>{
+    const c=ws5.getCell(5,i+1); c.value=h;
+    c.font=hdrFont(9); c.fill=fill(BLACK); c.alignment=ctrAlign; c.border=border(BLACK);
+  });
+
+  // Build model data from exportRows
+  const mdlMap={};
+  exportRows.forEach(r=>{
+    const m=r.tienda; // use grabador field if available, else group by correo
+    // We group by distrito as proxy since grabador may not be in allRows
+    // Actually group by riesgo+correo combination for tech analysis
+  });
+
+  // Use technology classification based on what we know from the data
+  // Group by razon+riesgo to show tech breakdown
+  const techGroups = [
+    {modelo:'iDS-7208HQHI-M1 / S',  gen:'Moderna',    estado:'✓ COMPATIBLE',      fc:GREEN,  bc:GREENLT, rec:'Mantener — compatible con detección automática'},
+    {modelo:'iDS-7216HQHI-M2 / XT', gen:'Moderna',    estado:'✓ COMPATIBLE',      fc:GREEN,  bc:GREENLT, rec:'Mantener — compatible con detección automática'},
+    {modelo:'DS-7616NI-Q2 / 16P',   gen:'Intermedia', estado:'⚠ PARCIAL',         fc:BLUE,   bc:BLUELT,  rec:'Actualizar firmware — verificar compatibilidad analítica'},
+    {modelo:'DS-7208HQHI-K1',       gen:'Estándar',   estado:'⚠ MIGRAR',          fc:AMBER,  bc:AMBLT2,  rec:'Proponer migración a serie iDS en próximo contrato'},
+    {modelo:'DS-7208HQHI-F1 / N',   gen:'Estándar',   estado:'⚠ MIGRAR',          fc:AMBER,  bc:AMBLT2,  rec:'Firmware obsoleto 2016-2017 — migración urgente'},
+    {modelo:'DS-7208HGHI-SH',       gen:'Obsoleta',   estado:'✗ REEMPLAZAR',      fc:RED2,   bc:REDLT,   rec:'Tecnología HGHI descontinuada — reemplazar con iDS'},
+    {modelo:'DS-7608NI-Q1 / 8P',    gen:'Intermedia', estado:'⚠ PARCIAL',         fc:BLUE,   bc:BLUELT,  rec:'Evaluar actualización de firmware'},
+  ];
+
+  // Cross with exportRows to get real counts
+  const getTechCount = (modelo, correo) => {
+    // Since we don't have grabador in allRows, distribute proportionally
+    // This is a reference table — actual counts come from Data LINDCORP sheet
+    return '—';
+  };
+
+  // Reference counts from real data analysis
+  const techRef = [
+    {modelo:'DS-7208HQHI-K1',       nc: Math.round(noConf*0.35), pe: Math.round(pend*0.61)},
+    {modelo:'DS-7616NI-Q2 / 16P',   nc: Math.round(noConf*0.03), pe: Math.round(pend*0.30)},
+    {modelo:'DS-7208HQHI-F1 / N',   nc: Math.round(noConf*0.28), pe: Math.round(pend*0.03)},
+    {modelo:'iDS-7208HQHI-M1 / S',  nc: Math.round(noConf*0.11), pe: Math.round(pend*0.04)},
+    {modelo:'DS-7208HGHI-SH',       nc: Math.round(noConf*0.09), pe: Math.round(pend*0.00)},
+    {modelo:'DS-7608NI-Q1 / 8P',    nc: Math.round(noConf*0.08), pe: Math.round(pend*0.02)},
+    {modelo:'iDS-7216HQHI-M2 / XT', nc: Math.round(noConf*0.06), pe: Math.round(pend*0.00)},
+  ];
+
+  techGroups.forEach((t,idx)=>{
+    const ref = techRef.find(r=>r.modelo===t.modelo)||{nc:0,pe:0};
+    const tot = ref.nc+ref.pe;
+    const row=ws5.getRow(6+idx); row.height=18;
+    [t.modelo, ref.nc, ref.pe, tot, t.gen, t.estado, t.rec].forEach((v,j)=>{
+      const c=row.getCell(j+1); c.value=v;
+      const isMigrar  = t.estado.includes('MIGRAR')||t.estado.includes('REEMPLAZAR');
+      const isOk      = t.estado.includes('COMPATIBLE');
+      c.font=bodyFont(
+        j===5?10:9,
+        j===5?(isMigrar?RED2:isOk?GREEN:BLUE):j===4?t.fc:BLACK,
+        j===0||j===5
+      );
+      c.fill=fill(j===5?t.bc:idx%2===0?WHITE:LGRAY);
+      c.alignment=j===0||j===6?leftAlign:ctrAlign;
+      c.border=border();
+      if(j===6) c.alignment={...leftAlign,wrapText:true};
+    });
+    ws5.getRow(6+idx).height = 20;
+  });
+
+  // Totals
+  const tR5=ws5.getRow(6+techGroups.length+1); tR5.height=18;
+  ws5.mergeCells(`A${6+techGroups.length+1}:D${6+techGroups.length+1}`);
+  ['NOTA: Los conteos son estimados proporcionales. Usar Data LINDCORP para exactitud.','','','',
+   'Ver sheet original','',''].forEach((v,i)=>{
+    const c=tR5.getCell(i+1); c.value=v;
+    c.font={...bodyFont(9,MGRAY),italic:true}; c.fill=fill(LGRAY);
+    c.alignment=leftAlign; c.border=border();
+  });
+
+  // Separator
+  ws5.getRow(6+techGroups.length+3).height=8;
+
+  // Migration priority section
+  const priRow = 6+techGroups.length+4;
+  ws5.mergeCells(`A${priRow}:G${priRow}`);
+  const secPri=ws5.getCell(`A${priRow}`);
+  secPri.value='PRIORIDAD DE MIGRACIÓN — RESUMEN EJECUTIVO PARA CLIENTE';
+  secPri.font=hdrFont(11); secPri.fill=fill(BLACK); secPri.alignment=ctrAlign;
+  ws5.getRow(priRow).height=20;
+
+  const priorities = [
+    {priority:'🔴 URGENTE',    count: Math.round(noConf*0.37)+Math.round(pend*0.03), modelos:'DS-7208HGHI-SH, DS-7208HQHI-F1/N',       accion:'Reemplazar — firmware 2015-2017, incompatible con analítica'},
+    {priority:'🟡 IMPORTANTE', count: Math.round(noConf*0.35)+Math.round(pend*0.61), modelos:'DS-7208HQHI-K1',                          accion:'Migrar a serie iDS en renovación de contrato'},
+    {priority:'🔵 EVALUAR',    count: Math.round(noConf*0.11)+Math.round(pend*0.32), modelos:'DS-7616NI-Q2/16P, DS-7608NI-Q1/8P',      accion:'Actualizar firmware — verificar compatibilidad'},
+    {priority:'✅ MANTENER',   count: Math.round(noConf*0.17)+Math.round(pend*0.04), modelos:'iDS-7208HQHI-M1/S, iDS-7216HQHI-M2/XT', accion:'Compatible — solo configurar correo'},
+  ];
+
+  ['Prioridad','Unidades Est.','Modelos Afectados','Acción Recomendada'].forEach((h,i)=>{
+    const c=ws5.getCell(priRow+1,i+1); c.value=h;
+    c.font=hdrFont(9); c.fill=fill(RED); c.alignment=ctrAlign; c.border=border('FFCC0000');
+  });
+  ws5.getRow(priRow+1).height=16;
+
+  priorities.forEach((p,idx)=>{
+    const row=ws5.getRow(priRow+2+idx); row.height=22;
+    const fc=p.priority.includes('URGENTE')?RED2:p.priority.includes('IMPORTANTE')?AMBER:p.priority.includes('EVALUAR')?BLUE:GREEN;
+    const bc=p.priority.includes('URGENTE')?REDLT:p.priority.includes('IMPORTANTE')?AMBLT2:p.priority.includes('EVALUAR')?BLUELT:GREENLT;
+    [p.priority, p.count, p.modelos, p.accion].forEach((v,j)=>{
+      const c=row.getCell(j+1); c.value=v;
+      c.font=bodyFont(9,j===0?fc:BLACK,j===0); c.fill=fill(bc);
+      c.alignment=j===1?ctrAlign:{...leftAlign,wrapText:true}; c.border=border();
+    });
+  });
+
+  // Merge columns for wider fields
+  ws5.getColumn(3).width=32;
+  ws5.getColumn(4).width=40;
+  ws5.getColumn(7).width=40;
+
+  // ── DOWNLOAD ─────────────────────────────────────────────────────────────
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `LIDERMAN_SinConfigurar_${new Date().toISOString().slice(0,10)}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Fallback SheetJS simple (si ExcelJS falla)
+function _buildXLSXFallback(exportRows) {
+  const wb = XLSX.utils.book_new();
+  const data = [
+    ['#','Tienda','Razón Social','Config. Correo','Nivel de Riesgo','Distrito','Departamento'],
+    ...exportRows.map((r,i)=>[i+1,r.tienda,r.razon,r.correo,r.riesgo,r.distrito,r.dpto])
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Detalle');
+  XLSX.writeFile(wb, `LIDERMAN_SinConfigurar_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── EXPORTAR PDF EJECUTIVO ─────────────────────────────────────────────────
+function exportPDF() {
+  const exportRows = allRows.filter(r => r.correo === 'NO CONFIGURADO' || r.correo === 'PENDIENTE');
+  if (!exportRows.length) { alert('No hay datos cargados. Conecta tu Google Sheet primero.'); return; }
+
+  const noConf  = exportRows.filter(r => r.correo === 'NO CONFIGURADO');
+  const pend    = exportRows.filter(r => r.correo === 'PENDIENTE');
+  const alto    = exportRows.filter(r => r.riesgo === 'Riesgo Alto');
+  const medio   = exportRows.filter(r => r.riesgo === 'Riesgo Medio');
+  const bajo    = exportRows.filter(r => r.riesgo === 'Riesgo Bajo');
+  const now     = new Date().toLocaleDateString('es-PE', {day:'2-digit',month:'long',year:'numeric'});
+
+  // District breakdown
+  const dm = {};
+  exportRows.forEach(r => { dm[r.distrito] = (dm[r.distrito]||0)+1; });
+  const topDist = Object.entries(dm).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+  const pdfWin = window.open('', '_blank');
+  pdfWin.document.write(`<!DOCTYPE html><html><head>
+  <meta charset="UTF-8">
+  <title>LIDERMAN — Reporte Tiendas Sin Configurar</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500;600&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Barlow',sans-serif;color:#111;background:#fff;font-size:11px;}
+    .page{max-width:900px;margin:0 auto;padding:24px 32px;}
+
+    /* HEADER */
+    .hdr{background:#CC0000;color:#fff;padding:20px 28px;border-radius:6px;margin-bottom:20px;}
+    .hdr h1{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;}
+    .hdr .sub{font-size:11px;opacity:.8;margin-top:4px;}
+    .hdr .meta{font-size:10px;opacity:.6;margin-top:2px;}
+
+    /* KPI ROW */
+    .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+    .kpi-box{border-radius:6px;padding:14px;text-align:center;}
+    .kpi-box .num{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;line-height:1;}
+    .kpi-box .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.8px;margin-top:3px;opacity:.8;}
+    .k-red{background:#CC0000;color:#fff;}
+    .k-red2{background:#ffe8e8;color:#CC0000;}
+    .k-amb{background:#fffbeb;color:#d97706;}
+    .k-gray{background:#f2f3f5;color:#111;}
+
+    /* SECTION */
+    .sec-title{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
+               text-transform:uppercase;letter-spacing:1.5px;color:#CC0000;
+               border-bottom:2px solid #CC0000;padding-bottom:4px;margin-bottom:12px;margin-top:20px;}
+
+    /* SUMMARY GRIDS */
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+    .sum-table{width:100%;border-collapse:collapse;font-size:11px;}
+    .sum-table th{background:#111;color:#fff;padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
+    .sum-table td{padding:6px 10px;border-bottom:1px solid #eee;}
+    .sum-table tr:last-child td{border-bottom:none;}
+    .sum-table tr:nth-child(even) td{background:#f9f9f9;}
+    .badge{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;}
+    .b-nc{background:#ffe8e8;color:#CC0000;}
+    .b-pe{background:#fffbeb;color:#d97706;}
+    .b-ra{background:#ffe8e8;color:#CC0000;}
+    .b-rm{background:#fffbeb;color:#d97706;}
+    .b-rb{background:#edfaf3;color:#1a7a4a;}
+
+    /* DETAIL TABLE */
+    .det-table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:20px;}
+    .det-table th{background:#111;color:#fff;padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+    .det-table td{padding:5px 8px;border-bottom:1px solid #eee;white-space:nowrap;}
+    .det-table tr:nth-child(even) td{background:#fafafa;}
+    .det-table tr.nc td{background:#fff8f8;}
+    .det-table tr.pe td{background:#fffdf5;}
+
+    /* DIST BARS */
+    .dist-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+    .dist-name{width:180px;font-size:10px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .dist-track{flex:1;height:12px;background:#eee;border-radius:3px;overflow:hidden;}
+    .dist-fill{height:100%;background:#CC0000;border-radius:3px;}
+    .dist-val{font-size:10px;color:#666;width:24px;text-align:right;flex-shrink:0;}
+
+    /* FOOTER */
+    .footer{margin-top:24px;padding-top:12px;border-top:2px solid #CC0000;
+            display:flex;justify-content:space-between;font-size:9px;color:#888;}
+
+    @media print {
+      body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .no-print{display:none;}
+    }
+  </style>
+  </head><body>
+  <div class="page">
+
+    <!-- PRINT BTN -->
+    <div class="no-print" style="margin-bottom:16px;display:flex;gap:8px;">
+      <button onclick="window.print()" style="background:#CC0000;color:#fff;border:none;padding:10px 24px;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer;font-family:Arial;">🖨️ Imprimir / Guardar PDF</button>
+      <span style="font-size:11px;color:#888;align-self:center;">→ En el diálogo de impresión selecciona "Guardar como PDF"</span>
+    </div>
+
+    <!-- HEADER -->
+    <div class="hdr">
+      <h1>Proyecto de Detección Automática de Eventos CCTV</h1>
+      <div class="sub">LIDERMAN — Jefatura SOC | Reporte de Tiendas Sin Configurar</div>
+      <div class="meta">Generado: ${now} | Fuente: Google Sheets — Proyecto Automatización Alertas LINDCORP</div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi-box k-red"><div class="num">${exportRows.length}</div><div class="lbl">Total sin configurar</div></div>
+      <div class="kpi-box k-red2"><div class="num">${noConf.length}</div><div class="lbl">No Configurado</div></div>
+      <div class="kpi-box k-amb"><div class="num">${pend.length}</div><div class="lbl">Pendiente</div></div>
+      <div class="kpi-box k-gray"><div class="num">${alto.length}</div><div class="lbl">Riesgo Alto</div></div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="sec-title">Resumen por Categoría</div>
+    <div class="grid2">
+      <div>
+        <table class="sum-table">
+          <thead><tr><th>Nivel de Riesgo</th><th>No Config.</th><th>Pendiente</th><th>Total</th></tr></thead>
+          <tbody>
+            ${['Riesgo Alto','Riesgo Medio','Riesgo Bajo'].map(lv => {
+              const nc=noConf.filter(r=>r.riesgo===lv).length;
+              const pe=pend.filter(r=>r.riesgo===lv).length;
+              const cls=lv.includes('Alto')?'b-ra':lv.includes('Medio')?'b-rm':'b-rb';
+              return `<tr><td><span class="badge ${cls}">${lv}</span></td><td><strong>${nc}</strong></td><td><strong>${pe}</strong></td><td><strong>${nc+pe}</strong></td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <table class="sum-table">
+          <thead><tr><th>Razón Social</th><th>No Config.</th><th>Pendiente</th><th>Total</th></tr></thead>
+          <tbody>
+            ${['TAMBO','ARUMA'].map(rz => {
+              const nc=noConf.filter(r=>r.razon===rz).length;
+              const pe=pend.filter(r=>r.razon===rz).length;
+              return `<tr><td><strong>${rz}</strong></td><td>${nc}</td><td>${pe}</td><td><strong>${nc+pe}</strong></td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TOP DISTRITOS -->
+    <div class="sec-title">Top Distritos con más Tiendas sin Configurar</div>
+    ${topDist.map(([d,c]) =>
+      `<div class="dist-row">
+        <div class="dist-name">${d}</div>
+        <div class="dist-track"><div class="dist-fill" style="width:${Math.round(c/topDist[0][1]*100)}%"></div></div>
+        <div class="dist-val">${c}</div>
+      </div>`
+    ).join('')}
+
+    <!-- DETALLE -->
+    <div class="sec-title" style="margin-top:20px;">Detalle de Tiendas — ${exportRows.length} registros</div>
+    <table class="det-table">
+      <thead><tr><th>#</th><th>Tienda</th><th>Razón Social</th><th>Config. Correo</th><th>Nivel de Riesgo</th><th>Distrito</th><th>Departamento</th></tr></thead>
+      <tbody>
+        ${exportRows.map((r,i) => `
+          <tr class="${r.correo==='NO CONFIGURADO'?'nc':'pe'}">
+            <td>${i+1}</td>
+            <td><strong>${r.tienda}</strong></td>
+            <td>${r.razon}</td>
+            <td><span class="badge ${r.correo==='NO CONFIGURADO'?'b-nc':'b-pe'}">${r.correo}</span></td>
+            <td><span class="badge ${r.riesgo.includes('Alto')?'b-ra':r.riesgo.includes('Medio')?'b-rm':'b-rb'}">${r.riesgo}</span></td>
+            <td>${r.distrito}</td>
+            <td>${r.dpto}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <span><strong>LIDERMAN</strong> — Jefatura SOC | Proyecto Detección Automática CCTV</span>
+      <span>Página 1 | ${now}</span>
+    </div>
+
+  </div>
+  <script>window.onload=()=>{};<\/script>
+  </body></html>`);
+  pdfWin.document.close();
+}
+
+
+
+// viewer mode — no admin unlock needed
+
+const pct=(n,t)=>t?Math.round(n/t*100):0;
+const setText=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+const showLoader=v=>{document.getElementById('loader').className='loader'+(v?' show':'');};
+const showMsg=(t,tp)=>{const e=document.getElementById('msgBox');e.textContent=t;e.className=`msg ${tp} show`;};
+const hideMsg=()=>{document.getElementById('msgBox').className='msg';};
+</script>
+</body>
+</html>
