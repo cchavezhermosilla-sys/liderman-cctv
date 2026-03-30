@@ -196,7 +196,7 @@ footer strong{color:var(--red);}
 </div></div>
 
   <div id="zoneApi" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%;">
-    <input id="apiUrl" class="si" type="text" placeholder="Pega aquí la URL de tu Apps Script: https://script.google.com/macros/s/XXXXX/exec">
+    <input id="apiUrl" class="si" type="text" placeholder="Pega aquí la URL de tu Apps Script: https://script.google.com/macros/s/AKfycby7GQ8CMkd-O61KnZ8XqgFq7I9StusWerR_t78kCtufTRxc7Dl4Ff7TVB3P_k0Ss5NQ/exec">
     <button class="btn btn-red" onclick="connectApi()">⚡ Conectar</button>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#555;">Auto-refresh:</span>
@@ -664,7 +664,7 @@ function switchTab(t){
 
 // ── AUTO REFRESH STATE ─────────────────────────────────────────
 let refreshTimer = null;
-let currentApiUrl = '';
+let currentApiUrl = 'https://script.google.com/macros/s/AKfycby7GQ8CMkd-O61KnZ8XqgFq7I9StusWerR_t78kCtufTRxc7Dl4Ff7TVB3P_k0Ss5NQ/exec';
 
 function connectApi() {
   const url = document.getElementById('apiUrl').value.trim();
@@ -772,15 +772,11 @@ function stopRefresh() {
 }
 
 // Restore saved URL on page load
+// ── VIEWER AUTO-CONNECT ───────────────────────────────────────────────────
 window.addEventListener('load', () => {
-  try {
-    const saved = localStorage.getItem('lider_api_url');
-    if (saved) {
-      document.getElementById('apiUrl').value = saved;
-      // Show hint
-      showMsg('⚡ URL guardada detectada — presiona "Conectar" para reconectar.', 'ok');
-    }
-  } catch(e) {}
+  currentApiUrl = 'https://script.google.com/macros/s/AKfycby7GQ8CMkd-O61KnZ8XqgFq7I9StusWerR_t78kCtufTRxc7Dl4Ff7TVB3P_k0Ss5NQ/exec';
+  setTimeout(() => fetchFromApi(false), 800);
+  setInterval(() => fetchFromApi(false), 5 * 60 * 1000);
 });
 function loadDemo(){allRows=DEMO;document.getElementById('demoBar').style.display='block';initDashboard();}
 function loadFromPaste(){const text=document.getElementById('csvPaste').value.trim();if(!text){showMsg('Pega el CSV primero.','err');return;}hideMsg();try{const p=parseCSV(text);if(p.length<2)throw new Error('CSV no válido.');allRows=mapRows(p);if(!allRows.length)throw new Error('Sin registros.');document.getElementById('demoBar').style.display='none';initDashboard();showMsg('✓ '+allRows.length+' registros cargados.','ok');}catch(e){showMsg('❌ '+e.message,'err');}}
