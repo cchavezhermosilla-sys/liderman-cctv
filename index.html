@@ -196,7 +196,7 @@ footer strong{color:var(--red);}
 </div></div>
 
   <div id="zoneApi" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%;">
-    <input id="apiUrl" class="si" type="text" placeholder="Pega aquí la URL de tu Apps Script: https://script.google.com/macros/s/AKfycby7GQ8CMkd-O61KnZ8XqgFq7I9StusWerR_t78kCtufTRxc7Dl4Ff7TVB3P_k0Ss5NQ/exec">
+    <input id="apiUrl" class="si" type="text" placeholder="Pega aquí la URL de tu Apps Script: https://script.google.com/macros/s/XXXXX/exec">
     <button class="btn btn-red" onclick="connectApi()">⚡ Conectar</button>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#555;">Auto-refresh:</span>
@@ -219,14 +219,8 @@ footer strong{color:var(--red);}
 </div></div>
 
 
-<div id="loadingOverlay" style="
-  position:fixed;inset:0;background:#0d0d0d;z-index:9999;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
-  transition:opacity .6s ease;">
-  <div style="background:#CC0000;color:#fff;font-family:'Barlow Condensed',sans-serif;
-               font-size:28px;font-weight:900;letter-spacing:3px;padding:10px 24px;border-radius:6px;">
-    LIDERMAN
-  </div>
+<div id="loadingOverlay" style="position:fixed;inset:0;background:#0d0d0d;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+  <div style="background:#CC0000;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;letter-spacing:3px;padding:10px 24px;border-radius:6px;">LIDERMAN</div>
   <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#555;text-align:center;line-height:1.8;">
     Proyecto de Detección Automática de Eventos CCTV<br>
     <span style="color:#CC0000;">Cargando datos en tiempo real...</span>
@@ -234,17 +228,9 @@ footer strong{color:var(--red);}
   <div style="width:200px;height:3px;background:#222;border-radius:2px;overflow:hidden;">
     <div style="height:100%;background:#CC0000;border-radius:2px;animation:loadBar 1.5s ease infinite;"></div>
   </div>
-  <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#444;">
-    Jefe SOC · César Chávez Hermosilla
-  </div>
+  <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#444;">Jefe SOC · César Chávez Hermosilla</div>
 </div>
-<style>
-@keyframes loadBar {
-  0%   { width:0%;   margin-left:0; }
-  50%  { width:70%;  margin-left:15%; }
-  100% { width:0%;   margin-left:100%; }
-}
-</style>
+<style>@keyframes loadBar{0%{width:0%;margin-left:0}50%{width:70%;margin-left:15%}100%{width:0%;margin-left:100%}}</style>
 <div class="main">
 <div class="msg" id="msgBox"></div>
 <div class="demo-bar" id="demoBar">⚠️ Datos de demostración — carga tu CSV para ver datos reales.</div>
@@ -664,7 +650,7 @@ function switchTab(t){
 
 // ── AUTO REFRESH STATE ─────────────────────────────────────────
 let refreshTimer = null;
-let currentApiUrl = 'https://script.google.com/macros/s/AKfycby7GQ8CMkd-O61KnZ8XqgFq7I9StusWerR_t78kCtufTRxc7Dl4Ff7TVB3P_k0Ss5NQ/exec';
+let currentApiUrl = '';
 
 function connectApi() {
   const url = document.getElementById('apiUrl').value.trim();
@@ -680,25 +666,210 @@ function connectApi() {
 
 async function fetchFromApi(isManual) {
   if (!currentApiUrl) return;
-
+  if (isManual) { showLoader(true); hideMsg(); }
   try {
-    // Lee desde GitHub raw — sin problemas de CORS
-    const GITHUB_DATA_URL = 'https://raw.githubusercontent.com/cchavezhermosilla-sys/liderman-cctv/main/data.json';
-    const res = await fetch(GITHUB_DATA_URL + '?t=' + Date.now());
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const res = await fetch(currentApiUrl, { signal: AbortSignal.timeout(15000) });
+    if (!res.ok) throw new Error('Error HTTP ' + res.status);
     const json = await res.json();
-    if (!json || !json.rows) throw new Error('Sin datos');
-    processApiResponse(json);
+    if (!json.ok && json.error) throw new Error(json.error);
+    // Show which sheet was found
+    if (json.sheet) console.log('✓ Hoja encontrada:', json.sheet, '| Hojas disponibles:', json.allSheets);
+    if (!json.rows || !json.rows.length) throw new Error('Sin datos en la respuesta.');
+
+    // Map rows from JSON API
+    allRows = json.rows.map(r => ({
+      tienda:   (r['TIENDAS'] || r['Abonado'] || r['TdaNombre'] || r['RAZON SOCIAL'] || '—').trim(),
+      razon:    (r['RAZON SOCIAL'] || r['Razon Social'] || '—').trim(),
+      correo:   normC(r['CONFIG. CORREO'] || r['Config. Correo'] || r['CONFIG CORREO'] || ''),
+      riesgo:   normR(r['NIVEL DE RIESGO'] || r['Nivel de Riesgo'] || r['INDICE DELICTIVO'] || r['Indice Delictivo'] || ''),
+      status:   (r['Status'] || r['STATUS'] || r['Estado'] || 'Activa').trim(),
+      distrito: (r['Distrito'] || r['DISTRITO'] || '—').trim(),
+      dpto:     (r['Departameno'] || r['Departamento'] || r['DEPARTAMENTO'] || '—').trim(),
+    })).filter(r => r.riesgo !== '—' && r.correo !== '—');
+
+    document.getElementById('demoBar').style.display = 'none';
+    document.getElementById('refreshStatus').style.display = 'flex';
+    setText('refreshMin', document.getElementById('refreshInterval').value);
+
+    // Start auto-refresh timer
+    startAutoRefresh();
+    initDashboard();
+
+    const now = new Date();
+    if (isManual) showMsg('⚡ ' + allRows.length + ' registros cargados en tiempo real — ' + now.toLocaleTimeString('es-PE'), 'ok');
+
   } catch(e) {
-    const ov=document.getElementById('loadingOverlay');
-    if(ov){ov.style.opacity='0';setTimeout(()=>ov.remove(),700);}
-    console.error('Error:', e.message);
+    if (isManual) showMsg('❌ ' + e.message + ' — Verifica que la URL sea correcta y que el acceso sea "Cualquier persona".', 'err');
+  } finally {
+    if (isManual) showLoader(false);
   }
 }
 
-async function processApiResponse(json) {
+function startAutoRefresh() {
+  stopRefresh();
+  const mins = parseInt(document.getElementById('refreshInterval').value);
+  refreshTimer = setInterval(() => fetchFromApi(false), mins * 60 * 1000);
+  setText('refreshMin', mins);
+}
+
+function stopRefresh() {
+  if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+  document.getElementById('refreshStatus').style.display = 'none';
+}
+
+// Restore saved URL on page load
+window.addEventListener('load', () => {
+  loadFromGitHub();
+  setInterval(loadFromGitHub, 5 * 60 * 1000);
+});
+function loadDemo(){allRows=DEMO;document.getElementById('demoBar').style.display='block';initDashboard();}
+function loadFromPaste(){const text=document.getElementById('csvPaste').value.trim();if(!text){showMsg('Pega el CSV primero.','err');return;}hideMsg();try{const p=parseCSV(text);if(p.length<2)throw new Error('CSV no válido.');allRows=mapRows(p);if(!allRows.length)throw new Error('Sin registros.');document.getElementById('demoBar').style.display='none';initDashboard();showMsg('✓ '+allRows.length+' registros cargados.','ok');}catch(e){showMsg('❌ '+e.message,'err');}}
+// loadSheet replaced by connectApi (Apps Script)
+function parseCSV(text){return text.trim().split('\n').map(line=>{const cells=[];let inQ=false,cell='';for(const c of line){if(c==='"')inQ=!inQ;else if(c===','&&!inQ){cells.push(cell.trim());cell='';}else cell+=c;}cells.push(cell.trim());return cells;});}
+function mapRows(p){const H=p[0].map(h=>h.toLowerCase().replace(/[\s.]/g,''));const fi=(...keys)=>{for(const k of keys){const i=H.findIndex(h=>h.includes(k));if(i!==-1)return i;}return -1;};const iT=fi('tienda','tda','tdanombre','abonado','local');const iRS=fi('razonsocial','razon','social');const iC=fi('config','correo');const iR=fi('nivelderiesgo','indice','riesgo','delictivo');const iS=fi('status','estado');const iD=fi('distrito');const iDp=fi('departamen','dpto');return p.slice(1).filter(r=>r.some(c=>c)).map(r=>({tienda:(r[iT]||r[iRS]||'—').trim(),razon:(r[iRS]||'—').trim(),correo:normC(r[iC]||''),riesgo:normR(r[iR]||''),status:(r[iS]||'Activa').trim(),distrito:(r[iD]||'—').trim(),dpto:(r[iDp]||'—').trim()})).filter(r=>r.riesgo!=='—'&&r.correo!=='—');}
+const normC=v=>{const u=v.toUpperCase().trim();if(u==='CONFIGURADO')return 'CONFIGURADO';if(u==='NO CONFIGURADO')return 'NO CONFIGURADO';if(u==='PENDIENTE')return 'PENDIENTE';if(u.includes('NO CONF')||u.includes('NOCONF'))return 'NO CONFIGURADO';if(u.includes('CONF'))return 'CONFIGURADO';if(u.includes('PEND'))return 'PENDIENTE';if(u==='FUNCIONA'||u==='SI'||u==='OK')return 'CONFIGURADO';return u||'—';};
+const normR=v=>{const u=v.toLowerCase().trim();if(u.includes('alto'))return 'Riesgo Alto';if(u.includes('medio'))return 'Riesgo Medio';if(u.includes('bajo'))return 'Riesgo Bajo';return v.trim()||'—';};
+function initDashboard(){const dptos=[...new Set(allRows.map(r=>r.dpto))].filter(d=>d&&d!=='—').sort();const sel=document.getElementById('selDpto');sel.innerHTML='<option value="">Todos los departamentos</option>';dptos.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});viewRows=[...allRows];document.getElementById('afInfo').textContent='';render();document.getElementById('emptyState').style.display='none';document.getElementById('dash').style.display='block';}
+function applyGlobalFilter(){const dpto=document.getElementById('selDpto').value;const razon=document.getElementById('selRazon').value;const riesgo=document.getElementById('selRiesgo').value;const correo=document.getElementById('selCorreo').value;viewRows=allRows.filter(r=>(!dpto||r.dpto===dpto)&&(!razon||r.razon===razon)&&(!riesgo||r.riesgo===riesgo)&&(!correo||r.correo===correo));const act=[dpto,razon,riesgo,correo].filter(Boolean);document.getElementById('afInfo').textContent=act.length?`${act.length} filtro(s) · ${viewRows.length} registros`:'';tableFilter='todos';document.querySelectorAll('.fb2').forEach(b=>b.classList.remove('active'));document.querySelector('.fb2').classList.add('active');currentPage=1;render();}
+function clearFilters(){['selDpto','selRazon','selRiesgo','selCorreo'].forEach(id=>document.getElementById(id).value='');applyGlobalFilter();}
+function render(){const rows=viewRows;const total=rows.length;const conf=rows.filter(r=>r.correo==='CONFIGURADO').length;const noconf=rows.filter(r=>r.correo==='NO CONFIGURADO').length;const pend=rows.filter(r=>r.correo==='PENDIENTE').length;const avp=total?Math.round(conf/total*100):0;const alto=rows.filter(r=>r.riesgo==='Riesgo Alto').length;const medio=rows.filter(r=>r.riesgo==='Riesgo Medio').length;const bajo=rows.filter(r=>r.riesgo==='Riesgo Bajo').length;
+setTimeout(()=>{document.getElementById('avNum').innerHTML=avp+'<span>%</span>';document.getElementById('avBar').style.width=avp+'%';},100);
+setText('avSub',conf+' de '+total+' configurados');setText('tConf',conf);setText('tNoConf',noconf);setText('tPend',pend);
+const rData=[{label:'Riesgo Alto',color:'var(--alto)',count:alto},{label:'Riesgo Medio',color:'var(--medio)',count:medio},{label:'Riesgo Bajo',color:'var(--bajo)',count:bajo}];
+document.getElementById('riskGrid').innerHTML=rData.map(r=>{const rR=rows.filter(x=>x.riesgo===r.label);const rC=rR.filter(x=>x.correo==='CONFIGURADO').length;const rNC=rR.filter(x=>x.correo==='NO CONFIGURADO').length;const rP=rR.filter(x=>x.correo==='PENDIENTE').length;const rPct=r.count?Math.round(rC/r.count*100):0;const cP=r.count?(rC/r.count*100).toFixed(1):0;const nP=r.count?(rNC/r.count*100).toFixed(1):0;const pP=r.count?(rP/r.count*100).toFixed(1):0;return `<div class="rc"><div class="rc-head"><div class="rc-name"><div class="rc-dot" style="background:${r.color}"></div>${r.label}</div><div style="text-align:right"><div class="rc-pct" style="color:${r.color}">${rPct}%</div><div class="rc-n">${r.count} locales</div></div></div><div class="seg-bar"><div class="seg sc" data-w="${cP}" style="width:0%"></div><div class="seg sn" data-w="${nP}" style="width:0%"></div><div class="seg sp" data-w="${pP}" style="width:0%"></div></div><div class="rc-leg"><div class="rl"><div class="rld" style="background:var(--conf)"></div>${rC} Conf.</div><div class="rl"><div class="rld" style="background:var(--noconf)"></div>${rNC} No Conf.</div><div class="rl"><div class="rld" style="background:var(--pend)"></div>${rP} Pend.</div></div></div>`;}).join('');
+setTimeout(()=>{document.querySelectorAll('.seg').forEach(s=>s.style.width=s.dataset.w+'%');},150);
+setText('kTotal',total);setText('kConf',conf);setText('kConfP',pct(conf,total)+'% del total');setText('kNoConf',noconf);setText('kNoConfP',pct(noconf,total)+'% del total');setText('kPend',pend);setText('kPendP',pct(pend,total)+'% del total');setText('kAlto',alto);setText('kAltoP',pct(alto,total)+'% del total');
+setText('dPct',avp+'%');setText('dlC',conf);setText('dlNC',noconf);setText('dlP',pend);
+if(total){const cP=conf/total*100,nP=noconf/total*100,pP=pend/total*100;setTimeout(()=>{const dc=document.getElementById('dConf'),dnc=document.getElementById('dNoConf'),dp=document.getElementById('dPend');dc.setAttribute('stroke-dasharray',cP.toFixed(2)+' '+(100-cP).toFixed(2));dc.setAttribute('stroke-dashoffset','0');dnc.setAttribute('stroke-dasharray',nP.toFixed(2)+' '+(100-nP).toFixed(2));dnc.setAttribute('stroke-dashoffset',(-cP).toFixed(2));dp.setAttribute('stroke-dasharray',pP.toFixed(2)+' '+(100-pP).toFixed(2));dp.setAttribute('stroke-dashoffset',(-(cP+nP)).toFixed(2));},200);}
+document.getElementById('barChart').innerHTML=rData.map(r=>{const rR=rows.filter(x=>x.riesgo===r.label);const rC=rR.filter(x=>x.correo==='CONFIGURADO').length;const rPct=r.count?Math.round(rC/r.count*100):0;return `<div class="br"><div class="br-head"><span class="br-n" style="color:${r.color}">${r.label}</span><span class="br-m">${rC}/${r.count} — <strong>${rPct}%</strong></span></div><div class="bt"><div class="bf" data-w="${rPct}" style="background:${r.color};width:0%"></div></div></div>`;}).join('');
+setTimeout(()=>{document.querySelectorAll('.bf').forEach(b=>b.style.width=b.dataset.w+'%');},200);
+const dm={};rows.filter(r=>r.correo==='NO CONFIGURADO').forEach(r=>{dm[r.distrito]=(dm[r.distrito]||0)+1;});const sorted=Object.entries(dm).sort((a,b)=>b[1]-a[1]).slice(0,8);const maxD=sorted[0]?.[1]||1;document.getElementById('distList').innerHTML=sorted.map(([d,c],i)=>`<div class="dist-row"><div class="dist-rk">${i+1}</div><div class="dist-nm">${d}</div><div class="dist-tr"><div class="dist-fi" data-w="${Math.round(c/maxD*100)}" style="width:0%"></div></div><div class="dist-n">${c}</div></div>`).join('');setTimeout(()=>{document.querySelectorAll('.dist-fi').forEach(b=>b.style.width=b.dataset.w+'%');},250);
+renderStkChart();renderComparativa(rows);
+const now=new Date();const ts=now.toLocaleDateString('es-PE')+' '+now.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});setText('tsUpdate',ts);setText('footerTs','Actualizado: '+ts);
+applyTableFilter();}
+function renderStkChart(){const rows=viewRows;const topN=parseInt(document.getElementById('topN')?.value||'10');const dm={};rows.forEach(r=>{if(!dm[r.distrito])dm[r.distrito]={conf:0,noconf:0,pend:0,total:0};dm[r.distrito][r.correo==='CONFIGURADO'?'conf':r.correo==='NO CONFIGURADO'?'noconf':'pend']++;dm[r.distrito].total++;});const sorted=Object.entries(dm).sort((a,b)=>b[1].total-a[1].total).slice(0,topN);const maxT=sorted[0]?.[1].total||1;document.getElementById('stkChart').innerHTML=sorted.map(([d,v])=>{const cW=(v.conf/maxT*100).toFixed(1);const nW=(v.noconf/maxT*100).toFixed(1);const pW=(v.pend/maxT*100).toFixed(1);return `<div class="stk-row"><div class="stk-lbl" title="${d}">${d}</div><div class="stk-bar"><div class="stk-seg" data-w="${cW}" style="background:var(--conf);width:0%" title="Conf:${v.conf}"></div><div class="stk-seg" data-w="${nW}" style="background:var(--noconf);width:0%" title="NoConf:${v.noconf}"></div><div class="stk-seg" data-w="${pW}" style="background:var(--pend);width:0%" title="Pend:${v.pend}"></div></div><div class="stk-tot">${v.total}</div></div>`;}).join('');setTimeout(()=>{document.querySelectorAll('.stk-seg').forEach(s=>s.style.width=s.dataset.w+'%');},150);}
+function renderComparativa(rows){const T={total:0,conf:0,noconf:0,pend:0,alto:0,medio:0,bajo:0};const A={total:0,conf:0,noconf:0,pend:0,alto:0,medio:0,bajo:0};rows.forEach(r=>{const s=r.razon==='TAMBO'?T:r.razon==='ARUMA'?A:null;if(!s)return;s.total++;if(r.correo==='CONFIGURADO')s.conf++;else if(r.correo==='NO CONFIGURADO')s.noconf++;else s.pend++;if(r.riesgo==='Riesgo Alto')s.alto++;else if(r.riesgo==='Riesgo Medio')s.medio++;else s.bajo++;});const tPct=T.total?Math.round(T.conf/T.total*100):0;const aPct=A.total?Math.round(A.conf/A.total*100):0;setText('cmpTP',tPct+'%');setText('cmpTS',T.conf+' conf. de '+T.total);setText('cmpAP',aPct+'%');setText('cmpAS',A.conf+' conf. de '+A.total);const maxT=Math.max(T.total,A.total,1);const cmpR=[{lbl:'Configurado',tc:T.conf,ac:A.conf},{lbl:'No Config.',tc:T.noconf,ac:A.noconf},{lbl:'Pendiente',tc:T.pend,ac:A.pend}];document.getElementById('cmpBars').innerHTML=cmpR.map(r=>{const tW=(r.tc/maxT*100).toFixed(1);const aW=(r.ac/maxT*100).toFixed(1);return `<div class="cmp-br"><div class="cmp-val-t">${r.tc} <span style="font-size:9px;color:var(--muted)">T</span></div><div><div style="font-size:10px;text-align:center;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:3px">${r.lbl}</div><div style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:#2a2a2a;"><div style="background:var(--tambo);height:100%;border-radius:5px 0 0 5px;transition:width 1s ease;width:0%" data-w="${tW}" class="ca"></div><div style="background:var(--aruma);height:100%;border-radius:0 5px 5px 0;transition:width 1s ease;width:0%;margin-left:auto" data-w="${aW}" class="ca"></div></div></div><div class="cmp-val-a"><span style="font-size:9px;color:var(--muted)">A</span> ${r.ac}</div></div>`;}).join('');setTimeout(()=>{document.querySelectorAll('.ca').forEach(b=>b.style.width=b.dataset.w+'%');},200);const rD=[{lbl:'Riesgo Alto',t:T.alto,a:A.alto,c:'var(--alto)'},{lbl:'Riesgo Medio',t:T.medio,a:A.medio,c:'var(--medio)'},{lbl:'Riesgo Bajo',t:T.bajo,a:A.bajo,c:'var(--bajo)'}];document.getElementById('cmpRiesgo').innerHTML=rD.map(r=>{const tP=T.total?Math.round(r.t/T.total*100):0;const aP=A.total?Math.round(r.a/A.total*100):0;return `<div style="margin-bottom:16px"><div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:${r.c};margin-bottom:7px">${r.lbl}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span style="color:var(--tambo);font-weight:700">TAMBO</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">${r.t} (${tP}%)</span></div><div class="bt"><div class="bf" data-w="${Math.round(r.t/Math.max(T.total,1)*100)}" style="background:var(--tambo);width:0%"></div></div></div><div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span style="color:var(--aruma);font-weight:700">ARUMA</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">${r.a} (${aP}%)</span></div><div class="bt"><div class="bf" data-w="${Math.round(r.a/Math.max(A.total,1)*100)}" style="background:var(--aruma);width:0%"></div></div></div></div></div>`;}).join('');setTimeout(()=>{document.querySelectorAll('.bf').forEach(b=>b.style.width=b.dataset.w+'%');},200);}
+function filt(f,btn){tableFilter=f;document.querySelectorAll('.fb2').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentPage=1;applyTableFilter();}
+function applyTableFilter(){const f=tableFilter;filtered=f==='todos'?viewRows:f==='alto'?viewRows.filter(r=>r.riesgo==='Riesgo Alto'):f==='medio'?viewRows.filter(r=>r.riesgo==='Riesgo Medio'):f==='bajo'?viewRows.filter(r=>r.riesgo==='Riesgo Bajo'):viewRows.filter(r=>r.correo.toLowerCase()===f);setText('tblCount',filtered.length);renderTable();}
+function renderTable(){const total=filtered.length,pages=Math.ceil(total/PAGE_SIZE),start=(currentPage-1)*PAGE_SIZE,slice=filtered.slice(start,start+PAGE_SIZE);if(!slice.length){document.getElementById('tbody').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:28px;color:var(--muted)">Sin registros.</td></tr>`;setText('pageInfo','0 registros');document.getElementById('pageBtns').innerHTML='';return;}document.getElementById('tbody').innerHTML=slice.map((r,i)=>{const cc=r.correo==='CONFIGURADO'?'p-conf':r.correo==='NO CONFIGURADO'?'p-nc':'p-pend';const rc=r.riesgo.includes('Alto')?'p-alto':r.riesgo.includes('Medio')?'p-med':'p-baj';const rc2=r.razon==='TAMBO'?'p-tambo':'p-aruma';return `<tr><td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">${start+i+1}</td><td style="font-weight:600">${r.tienda}</td><td><span class="pill ${rc2}">${r.razon}</span></td><td><span class="pill ${cc}">${r.correo}</span></td><td><span class="pill ${rc}">${r.riesgo}</span></td><td><span class="pill p-act">${r.status}</span></td><td style="font-size:12px;color:var(--muted)">${r.distrito}</td><td style="font-size:12px;color:var(--muted)">${r.dpto}</td></tr>`;}).join('');setText('pageInfo',`${start+1}–${Math.min(start+PAGE_SIZE,total)} de ${total}`);if(pages<=1){document.getElementById('pageBtns').innerHTML='';return;}let btns='';for(let p=1;p<=Math.min(pages,10);p++)btns+=`<button class="pb2${p===currentPage?' active':''}" onclick="goPage(${p})">${p}</button>`;if(pages>10)btns+=`<span style="color:var(--muted);font-size:12px;padding:0 4px">…${pages}</span>`;document.getElementById('pageBtns').innerHTML=btns;}
+function goPage(p){currentPage=p;renderTable();window.scrollTo({top:document.querySelector('.tbl-panel').offsetTop-80,behavior:'smooth'});}
+
+// ── EXPORTAR XLSX PROFESIONAL (ExcelJS) ──────────────────────────────────
+function exportXLSX() {
+  const exportRows = allRows.filter(r => r.correo === 'NO CONFIGURADO' || r.correo === 'PENDIENTE');
+  if (!exportRows.length) { alert('No hay datos cargados. Conecta tu Google Sheet primero.'); return; }
+
+  // Load ExcelJS from CDN
+  if (typeof ExcelJS === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js';
+    s.onload = () => _buildXLSX(exportRows);
+    s.onerror = () => {
+      // Fallback to SheetJS if ExcelJS fails
+      const s2 = document.createElement('script');
+      s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s2.onload = () => _buildXLSXFallback(exportRows);
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s);
+  } else {
+    _buildXLSX(exportRows);
+  }
+}
+
+
+// ── XLSX CON GRÁFICOS (via Claude Artifacts API) ──────────────────────────
+async function exportXLSXWithCharts() {
+  const exportRows = allRows.filter(r => r.correo === 'NO CONFIGURADO' || r.correo === 'PENDIENTE');
+  if (!exportRows.length) { alert('No hay datos cargados. Conecta tu Google Sheet primero.'); return; }
+
+  // Build summary data to send to API
+  const noConf = exportRows.filter(r=>r.correo==='NO CONFIGURADO').length;
+  const pend   = exportRows.filter(r=>r.correo==='PENDIENTE').length;
+  const alto   = exportRows.filter(r=>r.riesgo==='Riesgo Alto').length;
+  const medio  = exportRows.filter(r=>r.riesgo==='Riesgo Medio').length;
+  const bajo   = exportRows.filter(r=>r.riesgo==='Riesgo Bajo').length;
+  const tNC    = exportRows.filter(r=>r.razon==='TAMBO'&&r.correo==='NO CONFIGURADO').length;
+  const tPE    = exportRows.filter(r=>r.razon==='TAMBO'&&r.correo==='PENDIENTE').length;
+  const aNC    = exportRows.filter(r=>r.razon==='ARUMA'&&r.correo==='NO CONFIGURADO').length;
+  const aPE    = exportRows.filter(r=>r.razon==='ARUMA'&&r.correo==='PENDIENTE').length;
+
+  const dm={};
+  exportRows.forEach(r=>{ dm[r.distrito]=(dm[r.distrito]||0)+1; });
+  const topDist=Object.entries(dm).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  const altoNC=exportRows.filter(r=>r.riesgo==='Riesgo Alto'&&r.correo==='NO CONFIGURADO').length;
+  const altoPE=exportRows.filter(r=>r.riesgo==='Riesgo Alto'&&r.correo==='PENDIENTE').length;
+  const medNC=exportRows.filter(r=>r.riesgo==='Riesgo Medio'&&r.correo==='NO CONFIGURADO').length;
+  const medPE=exportRows.filter(r=>r.riesgo==='Riesgo Medio'&&r.correo==='PENDIENTE').length;
+  const bajNC=exportRows.filter(r=>r.riesgo==='Riesgo Bajo'&&r.correo==='NO CONFIGURADO').length;
+  const bajPE=exportRows.filter(r=>r.riesgo==='Riesgo Bajo'&&r.correo==='PENDIENTE').length;
+  const now = new Date().toLocaleDateString('es-PE');
+
+  // Show loading toast
+  showToastMsg('⏳ Generando XLSX con gráficos... espera unos segundos');
+
+  const prompt = `Genera un archivo Excel (.xlsx) profesional para LIDERMAN usando Python/openpyxl con los siguientes datos reales:
+
+DATOS RESUMEN:
+- Total sin configurar: ${exportRows.length}
+- NO CONFIGURADO: ${noConf}
+- PENDIENTE: ${pend}
+- Riesgo Alto: ${alto} (NC:${altoNC} PE:${altoPE})
+- Riesgo Medio: ${medio} (NC:${medNC} PE:${medPE})
+- Riesgo Bajo: ${bajo} (NC:${bajNC} PE:${bajPE})
+- TAMBO: NC=${tNC} PE=${tPE} Total=${tNC+tPE}
+- ARUMA: NC=${aNC} PE=${aPE} Total=${aNC+aPE}
+- Fecha: ${now}
+- Jefe SOC: César Chávez Hermosilla
+
+TOP DISTRITOS (nombre,cantidad):
+${topDist.map(([d,c])=>`${d}:${c}`).join(', ')}
+
+DETALLE TIENDAS (primeras 50):
+${exportRows.slice(0,50).map(r=>`${r.tienda}|${r.razon}|${r.correo}|${r.riesgo}|${r.distrito}|${r.dpto}`).join('\n')}
+
+Crea un XLSX con 4 hojas:
+1. "Resumen Ejecutivo" - Banner rojo (#CC0000) LIDERMAN, KPIs con colores, tabla por riesgo, tabla TAMBO vs ARUMA, PIE CHART de No Config vs Pendiente, BAR CHART apilado por nivel de riesgo
+2. "Detalle Tiendas" - Tabla formateada con colores rojo/amarillo por estado, autofilter, BAR CHART top 10 distritos horizontal
+3. "Por Distrito" - Ranking con % del total, BAR CHART apilado No Config vs Pendiente por distrito
+4. "TAMBO vs ARUMA" - Comparativo con colores azul/morado, BAR CHART clustered
+
+Usa colores: Rojo=#CC0000, Negro=#111111, Ámbar=#D97706, Verde=#1A7A4A, Azul=#1A56DB, Morado=#7C3AED
+Fuente Arial. Formato profesional ejecutivo. Guarda en /mnt/user-data/outputs/LIDERMAN_Reporte_Graficos.xlsx`;
+
   try {
-    const fakeJson = json;
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{role:'user', content: prompt}]
+      })
+    });
+
+    const data = await resp.json();
+    const txt = data.content?.map(b=>b.text||'').join('') || '';
+    showToastMsg('✅ Revisa el archivo generado en outputs');
+    console.log('Claude response:', txt);
+
+  } catch(e) {
+    showToastMsg('❌ Error al generar: ' + e.message);
+  }
+}
+
+function showToastMsg(msg) {
+  let t = document.getElementById('_toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = '_toast';
+    t.style.cssText = 'position:fixed;top:68px;right:20px;background:#1a56db;color:#fff;padding:10px 18px;border-radius:8px;font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:700;z-index:9999;transition:opacity .5s;box-shadow:0 4px 20px rgba(0,0,0,.5);pointer-events:none;max-width:400px;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.opacity='1';
+  setTimeout(()=>{ t.style.opacity='0'; }, 4000);
+}
 
 async function _buildXLSX(exportRows) {
   const wb = new ExcelJS.Workbook();
@@ -1375,8 +1546,41 @@ function exportPDF() {
 
 
 
-// viewer mode — no admin unlock needed
 
+
+
+// ── CARGAR DESDE GITHUB (sin CORS) ────────────────────────────────────────
+async function loadFromGitHub() {
+  try {
+    const res = await fetch('https://raw.githubusercontent.com/cchavezhermosilla-sys/liderman-cctv/main/data.json?t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    if (!json || !json.rows || !json.rows.length) throw new Error('Sin datos');
+
+    allRows = json.rows.map(r => ({
+      tienda:   (r['TIENDAS'] || r['Abonado'] || r['RAZON SOCIAL'] || '—').trim(),
+      razon:    (r['RAZON SOCIAL'] || '—').trim(),
+      correo:   normC(r['CONFIG. CORREO'] || ''),
+      riesgo:   normR(r['NIVEL DE RIESGO'] || r['INDICE DELICTIVO'] || ''),
+      status:   (r['Status'] || 'Activa').trim(),
+      distrito: (r['Distrito'] || '—').trim(),
+      dpto:     (r['Departameno'] || r['Departamento'] || '—').trim(),
+    })).filter(r => r.riesgo !== '—' && r.correo !== '—');
+
+    if (!allRows.length) throw new Error('Sin registros válidos');
+
+    document.getElementById('demoBar') && (document.getElementById('demoBar').style.display = 'none');
+    initDashboard();
+
+    const ov = document.getElementById('loadingOverlay');
+    if (ov) { ov.style.opacity = '0'; setTimeout(() => ov.remove(), 700); }
+
+  } catch(e) {
+    console.error('GitHub load error:', e.message);
+    const ov = document.getElementById('loadingOverlay');
+    if (ov) { ov.style.opacity = '0'; setTimeout(() => ov.remove(), 700); }
+  }
+}
 const pct=(n,t)=>t?Math.round(n/t*100):0;
 const setText=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
 const showLoader=v=>{document.getElementById('loader').className='loader'+(v?' show':'');};
