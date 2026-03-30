@@ -680,38 +680,50 @@ function connectApi() {
 
 async function fetchFromApi(isManual) {
   if (!currentApiUrl) return;
-  if (isManual) { showLoader(true); hideMsg(); }
 
-  // Proxy chain — tries each until one works
-  const PROXIES = [
-    u => u,
-    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  ];
+  return new Promise((resolve) => {
+    // JSONP — único método que funciona con Apps Script sin CORS
+    const cbName = '_cb_' + Date.now();
+    const script = document.createElement('script');
+    let done = false;
 
-  let json = null;
-  for (const px of PROXIES) {
-    try {
-      const res = await fetch(px(currentApiUrl), { signal: AbortSignal.timeout(12000) });
-      if (!res.ok) continue;
-      const text = await res.text();
-      // Handle allorigins wrapping
-      let parsed;
-      try { parsed = JSON.parse(text); } catch(e) { continue; }
-      if (parsed.contents) {
-        try { parsed = JSON.parse(parsed.contents); } catch(e) { continue; }
-      }
-      if (parsed && (parsed.rows || parsed.ok)) { json = parsed; break; }
-    } catch(e) { continue; }
-  }
+    const timeout = setTimeout(() => {
+      if (done) return;
+      done = true;
+      script.remove();
+      delete window[cbName];
+      // Hide overlay on timeout
+      const ov=document.getElementById('loadingOverlay');
+      if(ov){ov.style.opacity='0';setTimeout(()=>ov.remove(),700);}
+      resolve();
+    }, 15000);
 
-  if (!json) {
-    const ov=document.getElementById('loadingOverlay');
-    if(ov){ov.style.opacity='0';setTimeout(()=>ov.remove(),700);}
-    showMsg && showMsg('❌ No se pudo conectar. Verifica tu conexión a internet.','err');
-    return;
-  }
+    window[cbName] = function(json) {
+      if (done) return;
+      done = true;
+      clearTimeout(timeout);
+      script.remove();
+      delete window[cbName];
+      processApiResponse(json);
+      resolve();
+    };
 
+    script.src = currentApiUrl + '?callback=' + cbName;
+    script.onerror = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timeout);
+      script.remove();
+      delete window[cbName];
+      const ov=document.getElementById('loadingOverlay');
+      if(ov){ov.style.opacity='0';setTimeout(()=>ov.remove(),700);}
+      resolve();
+    };
+    document.head.appendChild(script);
+  });
+}
+
+async function processApiResponse(json) {
   try {
     const fakeJson = json;
     if (!json.ok && json.error) throw new Error(json.error);
@@ -744,8 +756,6 @@ async function fetchFromApi(isManual) {
     const ov=document.getElementById('loadingOverlay');
     if(ov){ov.style.opacity='0';setTimeout(()=>ov.remove(),700);}
     console.error('Error loading data:', e);
-  } finally {
-    if (isManual) showLoader(false);
   }
 }
 
